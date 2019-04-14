@@ -258,7 +258,7 @@ module.exports = function(robot) {
 
             scores[secondPlayer] = this.getScoreObject(scoreboard.type, secondScore);
         }
-        if (this.getScoreboard(scoreboard).type == 'zerosum') {
+        if (scoreboard.type == 'zerosum') {
             if (response.match.length != 5) {
                 response.send(`What's the big idea? ${scoreboardName} is a zero-sum scoreboard. I need the other player to mark, Einstein.`)
             }

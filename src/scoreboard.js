@@ -44,8 +44,6 @@ module.exports = function(robot) {
 
     this.getScoreboard = scoreboardName => {
         const scoreboard = Bookie.getScoreboard(scoreboardName);
-        robot.logger.info("Getting scoreboard...");
-        robot.logger.info(`Retrieved scoreboard: ${JSON.stringify(scoreboard)}`);
         return scoreboard;
     };
 
@@ -120,7 +118,7 @@ module.exports = function(robot) {
     * @return string
     */
     this.stringifyScoreboard = scoreboardName => {
-        const scoreboard = Bookie.getScoreboard(scoreboardName);
+        const scoreboard = this.getScoreboard(scoreboardName);
         const players = scoreboard.players;
         let playerColWidth = Object.keys(players).reduce((p1, p2) => (p1.length > p2.length ? p1 : p2)).length + 1;
         if (playerColWidth < 10) {
@@ -130,26 +128,26 @@ module.exports = function(robot) {
         const numCols = (scoreboard.type == "points" ? 1 : 2);
         const boardWidth = (playerColWidth + 2) + ((colWidth + 2) * numCols)
 
-        let boardString = `_${scoreboardName}:_\n`;
-        boardString += `.${"-".repeat(boardWidth)}.`;
+        let boardString = `_${scoreboardName}:_\n${JSON.stringify(scoreboard)}\n` + "```";
+        boardString += `.${"-".repeat(boardWidth)}.\n`;
 
-        let headerRow = "```";
+        let headerRow = "";
         if (scoreboard.type == "points") {
             headerRow += `${"Points".padStart(colWidth)} |`;
         } else {
             headerRow += `${"Wins".padStart(colWidth)} | ${"Losses".padStart(colWidth)} |`;
         }
         boardString += `| ${"Player".padEnd(playerColWidth)} | ${headerRow}\n`;
-        boardString += `|${"=".repeat(boardWidth)}|`;
+        boardString += `|${"=".repeat(boardWidth)}|\n`;
 
         for (player of Object.keys(players)) {
-            boardString += `| ${player.padEnd(playerColWidth)}`;
+            boardString += `| ${player.padEnd(playerColWidth)} `;
             if (scoreboard.type == "points") {
-                boardString += `|${players[player].points.toString().padStart(colWidth)} |\n`;
+                boardString += `| ${players[player].points.toString().padStart(colWidth)} |\n`;
             } else {
                 let wins = players[player].wins.toString();
                 let losses = players[player].losses.toString();
-                boardString += `|${wins.padStart(colWidth)} |${losses.padStart(colWidth)} |\n`;
+                boardString += `| ${wins.padStart(colWidth)} | ${losses.padStart(colWidth)} |\n`;
             }
         }
         boardString += `^${"-".repeat(boardWidth)}^` + "```";

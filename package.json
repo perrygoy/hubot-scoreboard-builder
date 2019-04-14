@@ -1,6 +1,6 @@
 {
   "name": "hubot-scoreboard-builder",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Store scores and more! No, just scores.",
   "main": "index.coffee",
   "scripts": {

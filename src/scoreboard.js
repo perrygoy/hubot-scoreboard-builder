@@ -63,14 +63,15 @@ module.exports = function(robot) {
         return Bookie.removePlayer(scoreboardName, player);
     };
 
-    this.addScore = (scoreboard, scores = {points: 0, wins: 0, losses: 0}, player, score) => {
-        if (scoreboard.type == "points") {
-            scores[player].points = score
+    this.getScoreObject = (scoreboardType, score) => {
+        let scoreObj = {points: 0, wins: 0, losses: 0};
+        if (scoreboardType == 'points') {
+            scoreObj.points = score
         } else {
             if (score >= 0) {
-                scores[player].wins = score;
+                scoreObj.wins = score;
             } else {
-                scores[player].losses = score * -1;
+                scoreObj.losses = score * -1;
             }
         }
         return scores;
@@ -90,7 +91,7 @@ module.exports = function(robot) {
         if (items.length == 1) {
             return items[0];
         }
-        return `${items.slice(0, -1).join(", ")}, and ${items.slice(-1)[0]}`;
+        return `${items.slice(0, -1).join(', ')}, and ${items.slice(-1)[0]}`;
     };
 
      /**
@@ -125,24 +126,24 @@ module.exports = function(robot) {
             playerColWidth = 10;
         }
         const colWidth = 10;
-        const numCols = (scoreboard.type == "points" ? 1 : 2);
+        const numCols = (scoreboard.type == 'points' ? 1 : 2);
         const boardWidth = (playerColWidth + 2) + ((colWidth + 3) * numCols)
 
-        let boardString = `_${scoreboardName}:_\n` + "```";
-        boardString += `.${"-".repeat(boardWidth)}.\n`;
+        let boardString = '```' + `.${'_'.repeat(scoreboardName.length + 2)}.\n| ${scoreboardName} :\n` + ;
+        boardString += `+${'-'.repeat(boardWidth)}.\n`;
 
-        let headerRow = "";
-        if (scoreboard.type == "points") {
-            headerRow += `${"Points".padStart(colWidth)} |`;
+        let headerRow = '';
+        if (scoreboard.type == 'points') {
+            headerRow += `${'Points'.padStart(colWidth)} |`;
         } else {
-            headerRow += `${"Wins".padStart(colWidth)} | ${"Losses".padStart(colWidth)} |`;
+            headerRow += `${'Wins'.padStart(colWidth)} | ${'Losses'.padStart(colWidth)} |`;
         }
-        boardString += `| ${"Player".padEnd(playerColWidth)} | ${headerRow}\n`;
-        boardString += `|${"=".repeat(boardWidth)}|\n`;
+        boardString += `| ${'Player'.padEnd(playerColWidth)} | ${headerRow}\n`;
+        boardString += `|${'='.repeat(boardWidth)}|\n`;
 
         for (player of Object.keys(players)) {
             boardString += `| ${player.padEnd(playerColWidth)} `;
-            if (scoreboard.type == "points") {
+            if (scoreboard.type == 'points') {
                 boardString += `| ${players[player].points.toString().padStart(colWidth)} |\n`;
             } else {
                 let wins = players[player].wins.toString();
@@ -150,7 +151,7 @@ module.exports = function(robot) {
                 boardString += `| ${wins.padStart(colWidth)} | ${losses.padStart(colWidth)} |\n`;
             }
         }
-        boardString += `^${"-".repeat(boardWidth)}^` + "```";
+        boardString += `º${'-'.repeat(boardWidth)}º` + '```';
         return boardString;
     };
 
@@ -196,7 +197,7 @@ module.exports = function(robot) {
             return;
         }
         let players = response.match[2]
-            .split(" ")
+            .split(' ')
             .map((player) => player[0] === '@' ? player.slice(1) : player );
         players.forEach((player) => {
             this.addPlayer(scoreboardName, player);
@@ -212,7 +213,7 @@ module.exports = function(robot) {
             return;
         }
         let players = response.match[2]
-            .split(" ")
+            .split(' ')
             .map((player) => player[0] === '@' ? player.slice(1) : player );
         players.forEach((player) => {
             this.removePlayer(scoreboardName, player);
@@ -236,8 +237,8 @@ module.exports = function(robot) {
             return;
         }
 
-        let scores = {points: 0, wins: 0, losses: 0};
-        scores = this.addScore(scoreboard, scores, firstPlayer, firstScore);
+        let scores = {};
+        scores[firstPlayer] = this.getScoreObject(scoreboard.type,firstScore);
         if (response.match.length == 5) {
             const secondScore = this.numberifyScore(response.match[3]);
             const secondPlayer = response.match[4];
@@ -247,7 +248,7 @@ module.exports = function(robot) {
                 return;
             }
 
-            scores = this.addScore(scoreboard, scores, secondPlayer, secondScore);
+            scores[secondPlayer] = this.getScoreObject(scoreboard.type, secondScore);
         }
         if (this.getScoreboard(scoreboard).type == 'zerosum') {
             if (response.match.length != 5) {

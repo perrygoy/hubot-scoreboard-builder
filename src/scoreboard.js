@@ -77,8 +77,11 @@ module.exports = function(robot) {
         return scoreObj;
     };
 
-    this.getMissingScoreboardMessage = scoreboardName => {
-        return `I ain't never heard'a no ${scoreboardName}. Get away from me, kid, ya bother me.`
+    this.markScores = (scoreboardName, scoreObj) => {
+        for (playerName of Object.keys(scoreObj)) {
+            let scores = scoreObj[playerName];
+            Bookie.adjustScores(scoreboardName, playerName, scores.wins, scores.losses, scores.points);
+        }
     };
 
      /**
@@ -153,6 +156,10 @@ module.exports = function(robot) {
         }
         boardString += `º${'-'.repeat(boardWidth)}º` + '```';
         return boardString;
+    };
+
+    this.getMissingScoreboardMessage = scoreboardName => {
+        return `I ain't never heard'a no ${scoreboardName}. Get away from me, kid, ya bother me.`
     };
 
     // responses
@@ -247,9 +254,9 @@ module.exports = function(robot) {
 
         let scores = {};
         scores[firstPlayer] = this.getScoreObject(scoreboard.type,firstScore);
-        if (response.match.length == 5) {
-            const secondScore = this.numberifyScore(response.match[3]);
-            const secondPlayer = response.match[4];
+        if (response.match.length == 6) {
+            const secondScore = this.numberifyScore(response.match[4]);
+            const secondPlayer = response.match[5];
 
             if (!this.isPlayerOnScoreboard(scoreboard, secondPlayer)) {
                 response.send(`Who you kiddin'? ${secondPlayer} isn't marked on ${scoreboardName}.`);
@@ -267,6 +274,7 @@ module.exports = function(robot) {
                 return;
             }
         }
+        this.markScores(scoreboardName, scores);
         response.send(`OK pal, here's the latest standin's:\n\n${this.stringifyScoreboard(scoreboardName)}`);
     });
 };

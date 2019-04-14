@@ -52,7 +52,7 @@ module.exports = function(robot) {
     };
 
     this.isPlayerOnScoreboard = (scoreboard, playerName) => {
-        return typeof scoreboard.players[playerName] === 'undefined';
+        return typeof scoreboard.players[playerName] !== 'undefined';
     };
 
     this.addPlayer = (scoreboardName, player) => {
@@ -126,9 +126,9 @@ module.exports = function(robot) {
         }
         const colWidth = 10;
         const numCols = (scoreboard.type == "points" ? 1 : 2);
-        const boardWidth = (playerColWidth + 2) + ((colWidth + 2) * numCols)
+        const boardWidth = (playerColWidth + 2) + ((colWidth + 3) * numCols)
 
-        let boardString = `_${scoreboardName}:_\n${JSON.stringify(scoreboard)}\n` + "```";
+        let boardString = `_${scoreboardName}:_\n` + "```";
         boardString += `.${"-".repeat(boardWidth)}.\n`;
 
         let headerRow = "";

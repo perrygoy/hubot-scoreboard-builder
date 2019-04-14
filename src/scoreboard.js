@@ -43,7 +43,9 @@ module.exports = function(robot) {
     };
 
     this.getScoreboard = scoreboardName => {
-        return Bookie.getScoreboard(scoreboardName);
+        const scoreboard = Bookie.getScoreboard(scoreboardName);
+        robot.logger.info(`Retrieved scoreboard: ${JSON.stringify(scoreboard)}`);
+        return scoreboard;
     };
 
     this.getOwner = scoreboardName => {
@@ -155,25 +157,25 @@ module.exports = function(robot) {
     // responses
 
     robot.respond(/scoreboard create (\w+) (winloss|zerosum|points)\s*$/i, response => {
-        const name = response.match[1];
+        const scoreboardName = response.match[1];
         const type = response.match[2];
         const user = this.getUsername(response);
 
-        if (this.createScoreboard(name, type, user)) {
-            response.send(`All right mac, I gotcha down. ${name} is on the books.`);
+        if (this.createScoreboard(scoreboardName, type, user)) {
+            response.send(`All right mac, I gotcha down. ${scoreboardName} is on the books.`);
         } else {
-            response.send(`Sorry bub, I'm already keepin' scores under ${name}. Pick another one.`);
+            response.send(`Sorry bub, I'm already keepin' scores under ${scoreboardName}. Pick another one.`);
         }
     });
 
     robot.respond(/scoreboard delete (\w+)\s*$/i, response => {
-        const scoreboard = response.match[1];
+        const scoreboardName = response.match[1];
         const user = this.getUsername(response);
 
-        if (this.deleteScoreboard(scoreboard, user)) {
+        if (this.deleteScoreboard(scoreboardName, user)) {
             response.send(`OK, I'll pretend I ain't never seen yas.`);
         } else {
-            const owner = this.getOwner(scoreboard);
+            const owner = this.getOwner(scoreboardName);
             response.send(`We got a wise guy over here. Only the scoreboard owner, ${owner}, can delete ${name}!`);
         }
     });
@@ -201,7 +203,7 @@ module.exports = function(robot) {
             this.addPlayer(scoreboardName, player);
         });
 
-        response.send(`OK, I've penciled in ${this.getNiceList(players)} on ${scoreboard}.`);
+        response.send(`OK, I've penciled in ${this.getNiceList(players)} on ${scoreboardName}.`);
     });
 
     robot.respond(/removeplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
@@ -217,12 +219,12 @@ module.exports = function(robot) {
             this.removePlayer(scoreboardName, player);
         });
 
-        response.send(`OK, I've erased ${this.getNiceList(players)} from ${scoreboard}, if you catch my drift.`);
+        response.send(`OK, I've erased ${this.getNiceList(players)} from ${scoreboardName}, if you catch my drift.`);
     });
 
     robot.respond(/markscore (\w+?) ([+-][\d]+|win|won|loss|lose|lost) @?(\w+?) (?:([+-][\d]+|win|won|loss|lose|lost) @?(\w+?))?\s*$/i, response => {
         const scoreboardName = response.match[1];
-        let scoreboard = this.getScoreboard(scoreboardName);
+        const scoreboard = this.getScoreboard(scoreboardName);
         if (scoreboard === null) {
             response.send(this.getMissingScoreboardMessage(scoreboardName));
             return;
@@ -250,14 +252,14 @@ module.exports = function(robot) {
         }
         if (this.getScoreboard(scoreboard).type == 'zerosum') {
             if (response.match.length != 5) {
-                response.send(`What's the big idea? ${scoreboard} is a zero-sum scoreboard. I need the other player to mark, Einstein.`)
+                response.send(`What's the big idea? ${scoreboardName} is a zero-sum scoreboard. I need the other player to mark, Einstein.`)
             }
             if (firstScore + secondScore != 0) {
-                response.send(`Hey, you new around here? Zero-sum scoreboards like ${scoreboard} need their scores to add to 0. ${firstScore} and ${secondScore} ain't gonna cut it.`);
+                response.send(`Hey, you new around here? Zero-sum scoreboards like ${scoreboardName} need their scores to add to 0. ${firstScore} and ${secondScore} ain't gonna cut it.`);
                 return;
             }
         }
-        this.updateScores(scoreboard, scores);
-        response.send(`OK pal, here's the latest standin's:\n\n${this.stringifyScoreboard(scoreboard)}`);
+        const updatedScoreboard = this.updateScores(scoreboard, scores);
+        response.send(`OK pal, here's the latest standin's:\n\n${this.stringifyScoreboard(updatedScoreboard)}`);
     });
 };

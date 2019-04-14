@@ -268,12 +268,12 @@ module.exports = function(robot) {
                 response.send(`Who you kiddin'? ${secondPlayer} isn't marked on ${scoreboardName}.`);
                 return;
             }
-
             scores[secondPlayer] = this.getScoreObject(scoreboard.type, secondScore);
         }
         if (scoreboard.type == 'zerosum') {
             if (typeof response.match[5] === 'undefined') {
                 response.send(`What's the big idea? ${scoreboardName} is a zero-sum scoreboard. I need the other player to mark, Einstein.`)
+                return;
             }
             if (firstScore + secondScore != 0) {
                 response.send(`Hey, you new around here? Zero-sum scoreboards like ${scoreboardName} need their scores to add to 0. ${firstScore} and ${secondScore} ain't gonna cut it.`);

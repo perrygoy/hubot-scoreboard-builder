@@ -195,8 +195,8 @@ module.exports = function(robot) {
             response.send(this.getMissingScoreboardMessage(scoreboardName));
             return;
         }
-        if (scoreboard.players.length > 0) {
-            response.send(`You got it, boss:\n\n${this.stringifyScoreboard(scoreboardName)}`);
+        if (Object.keys(scoreboard.players).length > 0) {
+            response.send(`You got it, boss:\n${this.stringifyScoreboard(scoreboardName)}`);
         } else {
             response.send(`Ain't much t'tell ya, mac. There are no players for ${scoreboardName}. You can add some with the addplayers command.`);
         }

@@ -129,7 +129,7 @@ module.exports = function(robot) {
         const numCols = (scoreboard.type == 'points' ? 1 : 2);
         const boardWidth = (playerColWidth + 2) + ((colWidth + 3) * numCols)
 
-        let boardString = '```' + `.${'_'.repeat(scoreboardName.length + 2)}.\n| ${scoreboardName} :\n` + ;
+        let boardString = '```' + `.${'_'.repeat(scoreboardName.length + 2)}.\n| ${scoreboardName} :\n`;
         boardString += `+${'-'.repeat(boardWidth)}.\n`;
 
         let headerRow = '';
@@ -222,7 +222,7 @@ module.exports = function(robot) {
         response.send(`OK, I've erased ${this.getNiceList(players)} from ${scoreboardName}, if you catch my drift.`);
     });
 
-    robot.respond(/markscore (\w+?) ([+-][\d]+|win|won|loss|lose|lost) @?(\w+?) (?:([+-][\d]+|win|won|loss|lose|lost) @?(\w+?))?\s*$/i, response => {
+    robot.respond(/markscore (\w+?) ([+-][\d]+|win|won|loss|lose|lost) @?(\w+?)(?: ([+-][\d]+|win|won|loss|lose|lost) @?(\w+?))?\s*$/i, response => {
         const scoreboardName = response.match[1];
         const scoreboard = this.getScoreboard(scoreboardName);
         if (scoreboard === null) {

@@ -138,7 +138,7 @@ module.exports = function(robot) {
         }
         boardString += `*| ${"Player".padEnd(playerColWidth)} | ${headerRow}*\n`;
 
-        for player of Object.keys(players) {
+        for (player of Object.keys(players)) {
             boardString += `| ${player.padEnd(playerColWidth)}`;
             if (scoreboard.type == "points") {
                 boardString += `|${players[player].points.toString().padStart(colWidth)} |\n`;

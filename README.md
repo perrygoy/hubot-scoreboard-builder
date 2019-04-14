@@ -1,5 +1,5 @@
-hubot-scoreboard
-=================
+hubot-scoreboard-builder
+========================
 
 Create scoreboards to keep track of wins, losses, and points for whatever you want!
 

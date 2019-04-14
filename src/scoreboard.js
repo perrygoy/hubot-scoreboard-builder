@@ -115,10 +115,10 @@ module.exports = function(robot) {
      /**
     * Prints the scoreboard all pretty-like.
     *
-    * @param {object} scoreboard the scoreboard to turn into a string
+    * @param {string} scoreboardName the name of the scoreboard to turn into a string
     * @return string
     */
-    this.stringifyScoreboard = (scoreboardName) => {
+    this.stringifyScoreboard = scoreboardName => {
         const scoreboard = Bookie.getScoreboard(scoreboardName);
         const players = scoreboard.players;
         let playerColWidth = Object.keys(players).reduce((p1, p2) => (p1.length > p2.length ? p1 : p2)).length + 1;
@@ -182,12 +182,11 @@ module.exports = function(robot) {
 
     robot.respond(/scoreboard (\w+)$/i, response => {
         const scoreboardName = response.match[1];
-        const scoreboard = this.getScoreboard(scoreboardName);
-        if (scoreboard === null) {
+        if (this.getScoreboard(scoreboardName) === null) {
             response.send(this.getMissingScoreboardMessage(scoreboardName));
             return;
         }
-        response.send(`You got it, boss:\n\n${this.stringifyScoreboard(scoreboard)}`);
+        response.send(`You got it, boss:\n\n${this.stringifyScoreboard(scoreboardName)}`);
     });
 
     robot.respond(/addplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
@@ -259,7 +258,6 @@ module.exports = function(robot) {
                 return;
             }
         }
-        const updatedScoreboard = this.updateScores(scoreboard, scores);
-        response.send(`OK pal, here's the latest standin's:\n\n${this.stringifyScoreboard(updatedScoreboard)}`);
+        response.send(`OK pal, here's the latest standin's:\n\n${this.stringifyScoreboard(scoreboardName)}`);
     });
 };

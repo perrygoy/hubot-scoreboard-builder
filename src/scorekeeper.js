@@ -1,3 +1,7 @@
+// Description
+//   ScoreKeeper module
+//   Stores, retrieves, modifies, and deletes scoreboards for hubot.
+
 module.exports = function(robot) {
     // private functions
 

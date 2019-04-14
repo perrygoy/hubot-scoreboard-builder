@@ -44,6 +44,7 @@ module.exports = function(robot) {
 
     this.getScoreboard = scoreboardName => {
         const scoreboard = Bookie.getScoreboard(scoreboardName);
+        robot.logger.info("Getting scoreboard...");
         robot.logger.info(`Retrieved scoreboard: ${JSON.stringify(scoreboard)}`);
         return scoreboard;
     };
@@ -78,7 +79,7 @@ module.exports = function(robot) {
     };
 
     this.getMissingScoreboardMessage = scoreboardName => {
-        return `I ain't never heard a no ${scoreboardName}. Get away from me, kid, ya bother me.`
+        return `I ain't never heard'a no ${scoreboardName}. Get away from me, kid, ya bother me.`
     };
 
      /**
@@ -127,18 +128,19 @@ module.exports = function(robot) {
         }
         const colWidth = 10;
         const numCols = (scoreboard.type == "points" ? 1 : 2);
-        const boardWidth = (playerColWidth + 1) + ((colWidth + 1) * numCols)
+        const boardWidth = (playerColWidth + 2) + ((colWidth + 2) * numCols)
 
         let boardString = `_${scoreboardName}:_\n`;
         boardString += `.${"-".repeat(boardWidth)}.`;
 
-        let headerRow = "";
+        let headerRow = "```";
         if (scoreboard.type == "points") {
-            headerRow = `${"Points".padStart(colWidth)} |`;
+            headerRow += `${"Points".padStart(colWidth)} |`;
         } else {
-            headerRow = `${"Wins".padStart(colWidth)} | ${"Losses".padStart(colWidth)} |`;
+            headerRow += `${"Wins".padStart(colWidth)} | ${"Losses".padStart(colWidth)} |`;
         }
-        boardString += `*| ${"Player".padEnd(playerColWidth)} | ${headerRow}*\n`;
+        boardString += `| ${"Player".padEnd(playerColWidth)} | ${headerRow}\n`;
+        boardString += `|${"=".repeat(boardWidth)}|`;
 
         for (player of Object.keys(players)) {
             boardString += `| ${player.padEnd(playerColWidth)}`;
@@ -150,7 +152,7 @@ module.exports = function(robot) {
                 boardString += `|${wins.padStart(colWidth)} |${losses.padStart(colWidth)} |\n`;
             }
         }
-        boardString += `^${"-".repeat(boardWidth)}^`;
+        boardString += `^${"-".repeat(boardWidth)}^` + "```";
         return boardString;
     };
 

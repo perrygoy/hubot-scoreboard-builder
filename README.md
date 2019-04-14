@@ -12,6 +12,7 @@ Create scoreboards to keep track of wins, losses, and points for whatever you wa
     > Duels:
     > .---------------------------------.
     > | Players |      Wins |    Losses |
+    > |=================================|
     > | Perry   |         2 |         0 |
     > | Katy    |         0 |         0 |
     > | Vince   |         0 |         2 |

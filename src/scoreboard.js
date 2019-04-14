@@ -74,7 +74,7 @@ module.exports = function(robot) {
                 scoreObj.losses = score * -1;
             }
         }
-        return scores;
+        return scoreObj;
     };
 
     this.getMissingScoreboardMessage = scoreboardName => {
@@ -192,18 +192,26 @@ module.exports = function(robot) {
 
     robot.respond(/addplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
         const scoreboardName = response.match[1];
-        if (this.getScoreboard(scoreboardName) === null) {
+        const scoreboard = this.getScoreboard(scoreboardName);
+        if (scoreboard === null) {
             response.send(this.getMissingScoreboardMessage(scoreboardName));
             return;
         }
         let players = response.match[2]
             .split(' ')
             .map((player) => player[0] === '@' ? player.slice(1) : player );
-        players.forEach((player) => {
-            this.addPlayer(scoreboardName, player);
+        let addedPlayers = [];
+        players.forEach((playerName) => {
+            if (!this.isPlayerOnScoreboard(scoreboard, playerName)) {
+                this.addPlayer(scoreboardName, playerName);
+                addedPlayers.push(playerName)
+            }
         });
-
-        response.send(`OK, I've penciled in ${this.getNiceList(players)} on ${scoreboardName}.`);
+        if (addedPlayers.length > 0) {
+            response.send(`OK, I've penciled in ${this.getNiceList(addedPlayers)} on ${scoreboardName}.`);
+        } else {
+            response.send(`All'a them bubs's already on the list, pal.`);
+        }
     });
 
     robot.respond(/removeplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {

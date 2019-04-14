@@ -190,11 +190,16 @@ module.exports = function(robot) {
 
     robot.respond(/scoreboard (\w+)$/i, response => {
         const scoreboardName = response.match[1];
-        if (this.getScoreboard(scoreboardName) === null) {
+        const scoreboard = this.getScoreboard(scoreboardName);
+        if (scoreboard === null) {
             response.send(this.getMissingScoreboardMessage(scoreboardName));
             return;
         }
-        response.send(`You got it, boss:\n\n${this.stringifyScoreboard(scoreboardName)}`);
+        if (scoreboard.players.length > 0) {
+            response.send(`You got it, boss:\n\n${this.stringifyScoreboard(scoreboardName)}`);
+        } else {
+            response.send(`Ain't much t'tell ya, mac. There are no players for ${scoreboardName}. You can add some with the addplayers command.`);
+        }
     });
 
     robot.respond(/addplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
@@ -254,8 +259,9 @@ module.exports = function(robot) {
 
         let scores = {};
         scores[firstPlayer] = this.getScoreObject(scoreboard.type,firstScore);
-        if (response.match.length == 6) {
-            const secondScore = this.numberifyScore(response.match[4]);
+        let secondScore = 0;
+        if (typeof response.match[5] !== 'undefined') {
+            secondScore = this.numberifyScore(response.match[4]);
             const secondPlayer = response.match[5];
 
             if (!this.isPlayerOnScoreboard(scoreboard, secondPlayer)) {
@@ -266,7 +272,7 @@ module.exports = function(robot) {
             scores[secondPlayer] = this.getScoreObject(scoreboard.type, secondScore);
         }
         if (scoreboard.type == 'zerosum') {
-            if (response.match.length != 5) {
+            if (typeof response.match[5] === 'undefined') {
                 response.send(`What's the big idea? ${scoreboardName} is a zero-sum scoreboard. I need the other player to mark, Einstein.`)
             }
             if (firstScore + secondScore != 0) {

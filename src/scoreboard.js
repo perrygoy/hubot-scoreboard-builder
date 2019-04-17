@@ -131,8 +131,8 @@ module.exports = function(robot) {
     */
     this.stringifyScoreboard = scoreboardName => {
         const scoreboard = this.getScoreboard(scoreboardName);
-        const players = scoreboard.players.sort((p1, p2) => this.getWinPercentage(p2) - this.getWinPercentage(p1));
-        let playerColWidth = Object.keys(players).reduce((p1, p2) => (p1.length > p2.length ? p1 : p2)).length + 1;
+        const players = Object.entries(scoreboard.players).map(player => Object.assign({name: player[0]}, player[1]));
+        let playerColWidth = players.reduce((p1, p2) => (p1.name.length > p2.name.length ? p1 : p2)).name.length + 1;
         if (playerColWidth < 10) {
             playerColWidth = 10;
         }
@@ -152,13 +152,13 @@ module.exports = function(robot) {
         boardString += `| ${'Player'.padEnd(playerColWidth)} | ${headerRow}\n`;
         boardString += `|${'='.repeat(boardWidth)}|\n`;
 
-        for (player of Object.keys(players)) {
-            boardString += `| ${player.padEnd(playerColWidth)} `;
+        for (player of players) {
+            boardString += `| ${player.name.padEnd(playerColWidth)} `;
             if (scoreboard.type == 'points') {
-                boardString += `| ${players[player].points.toString().padStart(colWidth)} |\n`;
+                boardString += `| ${player.points.toString().padStart(colWidth)} |\n`;
             } else {
-                let wins = players[player].wins.toString();
-                let losses = players[player].losses.toString();
+                let wins = player.wins.toString();
+                let losses = player.losses.toString();
                 boardString += `| ${wins.padStart(colWidth)} | ${losses.padStart(colWidth)} |\n`;
             }
         }

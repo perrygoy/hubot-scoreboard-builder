@@ -103,7 +103,7 @@ module.exports = function(robot) {
     * @param {string} score the score to turn into a number: win, loss, or +/- N
     * @return int
     */
-    this.numberifyScore = (score) => {
+    this.numberifyScore = score => {
         let numberedScore = 0;
         if (['win', 'won', 'winner'].includes(score)) {
             numberedScore = 1;
@@ -115,6 +115,14 @@ module.exports = function(robot) {
         return numberedScore;
     };
 
+    this.getWinPercentage = player => {
+        const totalGames = player.wins + player.losses;
+        if (totalGames == 0) {
+            return -1;
+        }
+        return player.wins / totalGames;
+    };
+
      /**
     * Prints the scoreboard all pretty-like.
     *
@@ -123,7 +131,7 @@ module.exports = function(robot) {
     */
     this.stringifyScoreboard = scoreboardName => {
         const scoreboard = this.getScoreboard(scoreboardName);
-        const players = scoreboard.players;
+        const players = scoreboard.players.sort((p1, p2) => this.getWinPercentage(p2) - this.getWinPercentage(p1));
         let playerColWidth = Object.keys(players).reduce((p1, p2) => (p1.length > p2.length ? p1 : p2)).length + 1;
         if (playerColWidth < 10) {
             playerColWidth = 10;

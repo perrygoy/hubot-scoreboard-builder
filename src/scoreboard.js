@@ -118,7 +118,7 @@ module.exports = function(robot) {
     this.getWinPercentage = player => {
         const totalGames = player.wins + player.losses;
         if (totalGames == 0) {
-            return -1;
+            return player.points - 1;
         }
         return player.wins / totalGames;
     };

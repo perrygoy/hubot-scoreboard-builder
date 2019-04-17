@@ -152,7 +152,7 @@ module.exports = function(robot) {
         boardString += `| ${'Player'.padEnd(playerColWidth)} | ${headerRow}\n`;
         boardString += `|${'='.repeat(boardWidth)}|\n`;
 
-        for (player of players) {
+        for (player of players.sort((p1, p2) => this.getWinPercentage(p2) - this.getWinPercentage(p1))) {
             boardString += `| ${player.name.padEnd(playerColWidth)} `;
             if (scoreboard.type == 'points') {
                 boardString += `| ${player.points.toString().padStart(colWidth)} |\n`;

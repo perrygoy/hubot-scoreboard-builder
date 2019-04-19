@@ -22,6 +22,7 @@
 const ScoreKeeperMod = require('./scorekeeper');
 
 
+
 module.exports = function(robot) {
     const Bookie = new ScoreKeeperMod(robot);
 
@@ -115,6 +116,64 @@ module.exports = function(robot) {
         return numberedScore;
     };
 
+    /**
+    * Takes in a list of possible responses and returns a random one
+    * @param {list} responseList the list of responses
+    * @return list item
+    */
+    this.getRandomResponse = (responseList) => {
+        const i = Math.floor(Math.random() * responseList.length);
+        return responseList[i];
+    };
+
+    this.getGetScoreboardResponse = scoreboardName => {
+        const SCOREBOARD_RESPONSES = 
+        [
+            `Here's the play, see?\n${this.stringifyScoreboard(scoreboardName)}`,
+            `The gravy train's ridin' all over town on this one.\n${this.stringifyScoreboard(scoreboardName)}`,
+            `You got it, boss:\n${this.stringifyScoreboard(scoreboardName)}`,
+            `Better keep this outta sight of the bulls, know what I'm sayin'?\n${this.stringifyScoreboard(scoreboardName)}`
+        ]
+
+        return this.getRandomResponse(SCOREBOARD_RESPONSES);
+    }
+
+    this.getAddPlayerSuccessMessage = (addedPlayers, scoreboardName) => {
+        const ADD_PLAYERS_SUCCESS_RESPONSES =
+        [
+            `OK, I've penciled in ${addedPlayers} on ${scoreboardName}.`,
+            `OK, I've penciled in ${addedPlayers} and your mother on ${scoreboardName}. HAH!`,
+            `OK pal, I got ${addedPlayers}. We're all set here.`,
+            `Johnny Two-fingers told me this fell'd take us all the way to the bank. ${addedPlayers} on ${scoreboardName}.`,
+            `Why do _you_ think his name is Johnny Two-fingers?`
+        ]
+
+        return this.getRandomResponse(ADD_PLAYERS_SUCCESS_RESPONSES);
+    }
+
+    this.getAddPlayerFailMessage = (addedPlayers, scoreboardName) => {
+        const ADD_PLAYERS_FAIL_RESPONSES =
+        [
+            `All'a them bubs's already on the list, pal.`,
+            `What, you tryin' to double up or somethin'? All's thems already on the list. Now get outta here.`
+        ]
+
+        return this.getRandomResponse(ADD_PLAYERS_FAIL_RESPONSES);
+    }
+
+    this.getRemovePlayerMessage = (players) => {
+        const REMOVE_RESPONSES = 
+        [
+            `Alright, Johnny. I don't know what business you two had, but I ain't askin' neither. ${players} is gone.`,
+            `${players} is sleepin' with the fishes now, and that's all there is to it.`,
+            `You want I should strike ${players} from the record, eh? Alright, you got it.`, 
+            `Alright buddy. You don't gotta worry about ${players} no more.`
+        ]
+
+        return this.getRandomResponse(REMOVE_RESPONSES);
+    }
+
+
     this.getWinPercentage = player => {
         const totalGames = player.wins + player.losses;
         if (totalGames == 0) {
@@ -204,7 +263,7 @@ module.exports = function(robot) {
             return;
         }
         if (Object.keys(scoreboard.players).length > 0) {
-            response.send(`You got it, boss:\n${this.stringifyScoreboard(scoreboardName)}`);
+            response.send(this.getMissingScoreboardMessage(scoreboardName));
         } else {
             response.send(`Ain't much t'tell ya, mac. There are no players for ${scoreboardName}. You can add some with the addplayers command.`);
         }
@@ -228,9 +287,9 @@ module.exports = function(robot) {
             }
         });
         if (addedPlayers.length > 0) {
-            response.send(`OK, I've penciled in ${this.getNiceList(addedPlayers)} on ${scoreboardName}.`);
+            response.send(this.getAddPlayerSuccessMessage(this.getNiceList(addedPlayers), scoreboardName));
         } else {
-            response.send(`All'a them bubs's already on the list, pal.`);
+            response.send(this.getAddPlayerFailMessage(this.getNiceList(addedPlayers), scoreboardName));
         }
     });
 
@@ -247,7 +306,7 @@ module.exports = function(robot) {
             this.removePlayer(scoreboardName, player);
         });
 
-        response.send(`OK, I've erased ${this.getNiceList(players)} from ${scoreboardName}, if you catch my drift.`);
+        response.send(this.getRemovePlayerMessage);
     });
 
     robot.respond(/markscore (\w+?) ([+-][\d]+|win|won|loss|lose|lost) @?(\w+?)(?: ([+-][\d]+|win|won|loss|lose|lost) @?(\w+?))?\s*$/i, response => {

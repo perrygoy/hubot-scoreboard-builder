@@ -263,7 +263,7 @@ module.exports = function(robot) {
             return;
         }
         if (Object.keys(scoreboard.players).length > 0) {
-            response.send(this.getMissingScoreboardMessage(scoreboardName));
+            response.send(this.getGetScoreboardResponse(scoreboardName));
         } else {
             response.send(`Ain't much t'tell ya, mac. There are no players for ${scoreboardName}. You can add some with the addplayers command.`);
         }

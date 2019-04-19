@@ -22,7 +22,6 @@
 const ScoreKeeperMod = require('./scorekeeper');
 
 
-
 module.exports = function(robot) {
     const Bookie = new ScoreKeeperMod(robot);
 

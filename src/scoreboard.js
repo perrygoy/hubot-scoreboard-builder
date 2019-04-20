@@ -140,7 +140,6 @@ module.exports = function(robot) {
     this.getAddPlayerSuccessMessage = (addedPlayers, scoreboardName) => {
         const addPlayersSuccessResponses = [
             `OK, I've penciled in ${addedPlayers} on ${scoreboardName}.`,
-            `OK, I've penciled in ${addedPlayers} and your mother on ${scoreboardName}. HAH!`,
             `OK pal, I got ${addedPlayers}. We're all set here.`,
             `Johnny Two-fingers told me this fell'd take us all the way to the bank. ${addedPlayers} on ${scoreboardName}.`,
             `Why do _you_ think his name is Johnny Two-fingers?`,
@@ -286,6 +285,9 @@ module.exports = function(robot) {
                 addedPlayers.push(playerName)
             }
         });
+        if (addedPlayers.length == 2) {
+            addedPlayers.push("_your mother_");
+        }
         if (addedPlayers.length > 0) {
             response.send(this.getAddPlayerSuccessMessage(this.getNiceList(addedPlayers), scoreboardName));
         } else {

@@ -305,7 +305,7 @@ module.exports = function(robot) {
         players.forEach((player) => {
             this.removePlayer(scoreboardName, player);
         });
-        response.send(this.getRemovePlayerMessage(this.getNiceList(players));
+        response.send(this.getRemovePlayerMessage(this.getNiceList(players)));
     });
 
     robot.respond(/markscore (\w+?) ([+-][\d]+|win|won|loss|lose|lost) @?(\w+?)(?: ([+-][\d]+|win|won|loss|lose|lost) @?(\w+?))?\s*$/i, response => {

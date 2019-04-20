@@ -126,7 +126,7 @@ module.exports = function(robot) {
     };
 
     this.getGetScoreboardResponse = scoreboardName => {
-        const SCOREBOARD_RESPONSES = 
+        const scoreboardResponses = 
         [
             `Here's the play, see?\n${this.stringifyScoreboard(scoreboardName)}`,
             `The gravy train's ridin' all over town on this one.\n${this.stringifyScoreboard(scoreboardName)}`,
@@ -134,11 +134,11 @@ module.exports = function(robot) {
             `Better keep this outta sight of the bulls, know what I'm sayin'?\n${this.stringifyScoreboard(scoreboardName)}`
         ]
 
-        return this.getRandomResponse(SCOREBOARD_RESPONSES);
+        return this.getRandomResponse(scoreboardResponses);
     }
 
     this.getAddPlayerSuccessMessage = (addedPlayers, scoreboardName) => {
-        const ADD_PLAYERS_SUCCESS_RESPONSES =
+        const addPlayersSuccessResponses =
         [
             `OK, I've penciled in ${addedPlayers} on ${scoreboardName}.`,
             `OK, I've penciled in ${addedPlayers} and your mother on ${scoreboardName}. HAH!`,
@@ -147,21 +147,21 @@ module.exports = function(robot) {
             `Why do _you_ think his name is Johnny Two-fingers?`
         ]
 
-        return this.getRandomResponse(ADD_PLAYERS_SUCCESS_RESPONSES);
+        return this.getRandomResponse(addPlayersSuccessResponses);
     }
 
     this.getAddPlayerFailMessage = (addedPlayers, scoreboardName) => {
-        const ADD_PLAYERS_FAIL_RESPONSES =
+        const addPlayersFailResponses =
         [
             `All'a them bubs's already on the list, pal.`,
             `What, you tryin' to double up or somethin'? All's thems already on the list. Now get outta here.`
         ]
 
-        return this.getRandomResponse(ADD_PLAYERS_FAIL_RESPONSES);
+        return this.getRandomResponse(addPlayersFailResponses);
     }
 
     this.getRemovePlayerMessage = (players) => {
-        const REMOVE_RESPONSES = 
+        const removeResponses = 
         [
             `Alright, Johnny. I don't know what business you two had, but I ain't askin' neither. ${players} is gone.`,
             `${players} is sleepin' with the fishes now, and that's all there is to it.`,
@@ -169,7 +169,7 @@ module.exports = function(robot) {
             `Alright buddy. You don't gotta worry about ${players} no more.`
         ]
 
-        return this.getRandomResponse(REMOVE_RESPONSES);
+        return this.getRandomResponse(removeResponses);
     }
 
 

@@ -125,53 +125,54 @@ module.exports = function(robot) {
         return responseList[i];
     };
 
-    this.getGetScoreboardResponse = scoreboardName => {
-        const scoreboardResponses = 
-        [
+    // response builders
+
+    this.getShowScoreboardMessage = scoreboardName => {
+        const scoreboardResponses = [
             `Here's the play, see?\n${this.stringifyScoreboard(scoreboardName)}`,
             `The gravy train's ridin' all over town on this one.\n${this.stringifyScoreboard(scoreboardName)}`,
             `You got it, boss:\n${this.stringifyScoreboard(scoreboardName)}`,
-            `Better keep this outta sight of the bulls, know what I'm sayin'?\n${this.stringifyScoreboard(scoreboardName)}`
-        ]
-
+            `Better keep this outta sight of the bulls, know what I'm sayin'?\n${this.stringifyScoreboard(scoreboardName)}`,
+        ];
         return this.getRandomResponse(scoreboardResponses);
     }
 
     this.getAddPlayerSuccessMessage = (addedPlayers, scoreboardName) => {
-        const addPlayersSuccessResponses =
-        [
+        const addPlayersSuccessResponses = [
             `OK, I've penciled in ${addedPlayers} on ${scoreboardName}.`,
             `OK, I've penciled in ${addedPlayers} and your mother on ${scoreboardName}. HAH!`,
             `OK pal, I got ${addedPlayers}. We're all set here.`,
             `Johnny Two-fingers told me this fell'd take us all the way to the bank. ${addedPlayers} on ${scoreboardName}.`,
-            `Why do _you_ think his name is Johnny Two-fingers?`
-        ]
-
+            `Why do _you_ think his name is Johnny Two-fingers?`,
+        ];
         return this.getRandomResponse(addPlayersSuccessResponses);
     }
 
     this.getAddPlayerFailMessage = (addedPlayers, scoreboardName) => {
-        const addPlayersFailResponses =
-        [
+        const addPlayersFailResponses = [
             `All'a them bubs's already on the list, pal.`,
-            `What, you tryin' to double up or somethin'? All's thems already on the list. Now get outta here.`
-        ]
-
+            `What, you tryin' to double up or somethin'? All's thems already on the list. Now get outta here.`,
+        ];
         return this.getRandomResponse(addPlayersFailResponses);
-    }
+    };
 
-    this.getRemovePlayerMessage = (players) => {
-        const removeResponses = 
-        [
+    this.getRemovePlayerMessage = players => {
+        const removeResponses = [
             `Alright, Johnny. I don't know what business you two had, but I ain't askin' neither. ${players} is gone.`,
             `${players} is sleepin' with the fishes now, and that's all there is to it.`,
-            `You want I should strike ${players} from the record, eh? Alright, you got it.`, 
-            `Alright buddy. You don't gotta worry about ${players} no more.`
-        ]
-
+            `You want I should strike ${players} from the record, eh? Alright, you got it.`,
+            `Alright buddy. You don't gotta worry about ${players} no more.`,
+        ];
         return this.getRandomResponse(removeResponses);
-    }
+    };
 
+    this.getMissingPlayerMessage = (player, scoreboardName) => {
+        const missingResponses = [
+            `I don't know what kind of game you're playin' here, bud, but ${player} isn't marked on ${scoreboardName}.`,
+            `Who you kiddin'? ${player} isn't marked on ${scoreboardName}.`,
+        ];
+        return this.getRandomResponse(missingResponses);
+    };
 
     this.getWinPercentage = player => {
         const totalGames = player.wins + player.losses;
@@ -262,7 +263,7 @@ module.exports = function(robot) {
             return;
         }
         if (Object.keys(scoreboard.players).length > 0) {
-            response.send(this.getGetScoreboardResponse(scoreboardName));
+            response.send(this.getShowScoreboardMessage(scoreboardName));
         } else {
             response.send(`Ain't much t'tell ya, mac. There are no players for ${scoreboardName}. You can add some with the addplayers command.`);
         }
@@ -304,8 +305,7 @@ module.exports = function(robot) {
         players.forEach((player) => {
             this.removePlayer(scoreboardName, player);
         });
-
-        response.send(this.getRemovePlayerMessage);
+        response.send(this.getRemovePlayerMessage(this.getNiceList(players));
     });
 
     robot.respond(/markscore (\w+?) ([+-][\d]+|win|won|loss|lose|lost) @?(\w+?)(?: ([+-][\d]+|win|won|loss|lose|lost) @?(\w+?))?\s*$/i, response => {
@@ -319,7 +319,7 @@ module.exports = function(robot) {
         const firstScore = this.numberifyScore(response.match[2]);
         const firstPlayer = response.match[3];
         if (!this.isPlayerOnScoreboard(scoreboard, firstPlayer)) {
-            response.send(`I don't know what kind of game you're playin' here, bud, but ${firstPlayer} isn't marked on ${scoreboardName}.`);
+            response.send(this.getMissingPlayerMessage(firstPlayer, scoreboardName));
             return;
         }
 
@@ -331,7 +331,7 @@ module.exports = function(robot) {
             const secondPlayer = response.match[5];
 
             if (!this.isPlayerOnScoreboard(scoreboard, secondPlayer)) {
-                response.send(`Who you kiddin'? ${secondPlayer} isn't marked on ${scoreboardName}.`);
+                response.send(this.getMissingPlayerMessage(secondPlayer, scoreboardName));
                 return;
             }
             scores[secondPlayer] = this.getScoreObject(scoreboard.type, secondScore);

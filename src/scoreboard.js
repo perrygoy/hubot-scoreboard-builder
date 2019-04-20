@@ -94,7 +94,11 @@ module.exports = function(robot) {
         if (items.length == 1) {
             return items[0];
         }
-        return `${items.slice(0, -1).join(', ')}, and ${items.slice(-1)[0]}`;
+        if (items.length == 2) {
+            return `${items[0]} and ${items[1]}`;
+        } else {
+            return `${items.slice(0, -1).join(', ')}, and ${items.slice(-1)[0]}`;
+        }
     };
 
      /**

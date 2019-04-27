@@ -3,6 +3,7 @@
 //       * points  - just keep track of points!
 //       * winloss - the scoreboard keeps tracks of wins and losses with no further validation.
 //       * zerosum - similar to winloss except the wins must equal the losses across all players.
+//       * elo     - zerosum while also calculating Elo!
 //
 // Commands:
 //   scoreboard create {name} [winloss|zerosum|points] - create a new scoreboard with the given name and game style.
@@ -185,6 +186,14 @@ module.exports = function(robot) {
         return player.wins / totalGames;
     };
 
+    this.getWinValue = (player, scoreboardType) => {
+        if (scoreboardType === 'points') {
+            return player.points - 1;
+        }
+        const totalGames = player.wins + player.losses;
+        return (player.wins - player.losses) + totalGames + 1;
+    };
+
      /**
     * Prints the scoreboard all pretty-like.
     *
@@ -214,7 +223,8 @@ module.exports = function(robot) {
         boardString += `| ${'Player'.padEnd(playerColWidth)} | ${headerRow}\n`;
         boardString += `|${'='.repeat(boardWidth)}|\n`;
 
-        for (player of players.sort((p1, p2) => this.getWinPercentage(p2) - this.getWinPercentage(p1))) {
+        const sortedPlayers = players.sort((p1, p2) => this.getWinValue(p2, scoreboard.type) - this.getWinValue(p1, scoreboard.type));
+        for (player of sortedPlayers) {
             boardString += `| ${player.name.padEnd(playerColWidth)} `;
             if (scoreboard.type == 'points') {
                 boardString += `| ${player.points.toString().padStart(colWidth)} |\n`;

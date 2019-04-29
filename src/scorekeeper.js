@@ -24,10 +24,33 @@ module.exports = function(robot) {
         scoreboards[scoreboardName] = {
             type: type,
             owner: user,
+            archived: false,
             players: {},
         };
         save(scoreboards);
         return Object.assign({}, scoreboards[scoreboardName]);
+    };
+
+    this.archiveScoreboard = (scoreboardName, user) => {
+        const scoreboard = this.getScoreboard(scoreboardName);
+        if (user != scoreboard.owner) {
+            return false;
+        }
+        let scoreboards = getScoreboards();
+        scoreboards[scoreboardName].archived = true;
+        save(scoreboards);
+        return true;
+    };
+
+    this.unarchiveScoreboard = (scoreboardName, user) => {
+        const scoreboard = this.getScoreboard(scoreboardName);
+        if (user != scoreboard.owner) {
+            return false;
+        }
+        let scoreboards = getScoreboards();
+        scoreboards[scoreboardName].archived = false;
+        save(scoreboards);
+        return true;
     };
 
     this.deleteScoreboard = (scoreboardName, user) => {

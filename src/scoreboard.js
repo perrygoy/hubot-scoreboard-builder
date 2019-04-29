@@ -167,7 +167,7 @@ module.exports = function(robot) {
         const addPlayersSuccessResponses = [
             `OK, I've penciled in ${addedPlayers} on ${scoreboardName}.`,
             `OK pal, I got ${addedPlayers}. We're all set here.`,
-            `Johnny Two-fingers told me this fell'd take us all the way to the bank. ${addedPlayers} on ${scoreboardName}.`,
+            `Johnny Two-fingers told me this fell'd take us all the way to the bank. ${addedPlayers} have been added on ${scoreboardName}.`,
             `Why do _you_ think his name is Johnny Two-fingers?`,
         ];
         return this.getRandomResponse(addPlayersSuccessResponses);
@@ -200,7 +200,20 @@ module.exports = function(robot) {
     };
 
     this.getMissingScoreboardMessage = scoreboardName => {
-        return `I ain't never heard'a no ${scoreboardName}. Get away from me, kid, ya bother me.`
+        const missingBoardResponses = [
+            `I ain't never heard'a no ${scoreboardName}. Get away from me, kid, ya bother me.`,
+        ];
+        return this.getRandomResponse(missingBoardResponses);
+    };
+
+    this.getArchivedScoreboardMessage = scoreboardName => {
+        const archivedBoardResponses = [
+            `Look, I can track ${scoreboardName} down for yas, but y'can't change it no more.`,
+            `All I got is the last time anyone's seen ${scoreboardName}. It's under wraps now.`,
+            `Ain't no one seen ${scoreboardName} in years. I can describe it for yas though.`,
+        ];
+        return this.getRandomResponse(archivedBoardResponses);
+
     };
 
     // scoreboard functions
@@ -253,8 +266,11 @@ module.exports = function(robot) {
         }
 
         const boardWidth = (playerColWidth + 2) + ((colWidth + 3) * numCols);
-        let boardString = '```' + `.${'_'.repeat(scoreboardName.length + 2)}.\n| ${scoreboardName} :\n`;
-        boardString += `+${'-'.repeat(boardWidth)}.\n`;
+        let boardString = '```' + `.${'_'.repeat(scoreboardName.length + 2)}.\n| ${scoreboardName} :`;
+        if (scoreboard.archived) {
+            boardString += ' :lock:';
+        }
+        boardString += `\n+${'-'.repeat(boardWidth)}.\n`;
         boardString += `| ${'Player'.padEnd(playerColWidth)} | ${headerRow}\n`;
         boardString += `|${'='.repeat(boardWidth)}|\n`;
 
@@ -302,6 +318,22 @@ module.exports = function(robot) {
         }
     };
 
+    this.handleArchiveScoreboard = (response, scoreboardName, user) => {
+        if (this.archiveScoreboard(scoreboardName, user)) {
+            response.send(`OK, I'll put ${scoreboardName} on ice for yas.`);
+        } else {
+            response.send(`Hey, don't get pushy with me pal. Only ${this.getOwner(scoreboardName)} can archive ${scoreboardName}.`);
+        }
+    };
+
+    this.handleUnarchiveScoreboard = (response, scoreboardName, user) => {
+        if (this.unarchiveScoreboard(scoreboardName, user)) {
+            response.send(`OK, ${scoreboardName} is thawed out real nice.`);
+        } else {
+            response.send(`Only ${this.getOwner(scoreboardName)} knows the whereabouts o' ${scoreboardName}. You'll have to ask them.`);
+        }
+    };
+
     this.handleDeleteScoreboard = (response, scoreboardName, user) => {
         if (this.deleteScoreboard(scoreboardName, user)) {
             response.send(`OK, I'll pretend I ain't never seen yas.`);
@@ -311,8 +343,12 @@ module.exports = function(robot) {
     };
 
     this.handleAddPlayers = (response, scoreboardName, players) => {
-        if (this.getScoreboard(scoreboardName) === null) {
+        const scoreboard = this.getScoreboard(scoreboardName);
+        if (scoreboard === null) {
             response.send(this.getMissingScoreboardMessage(scoreboardName));
+            return;
+        } else if (scoreboard.archived) {
+            response.send(this.getArchivedScoreboardMessage(scoreboardName));
             return;
         }
         const playerList = players.split(' ').map((player) => player[0] === '@' ? player.slice(1) : player );
@@ -334,8 +370,12 @@ module.exports = function(robot) {
     };
 
     this.handleRemovePlayers = (response, scoreboardName, players) => {
-        if (this.getScoreboard(scoreboardName) === null) {
+        const scoreboard = this.getScoreboard(scoreboardName);
+        if (scoreboard === null) {
             response.send(this.getMissingScoreboardMessage(scoreboardName));
+            return;
+        } else if (scoreboard.archived) {
+            response.send(this.getArchivedScoreboardMessage(scoreboardName));
             return;
         }
         const playerList = players.split(' ').map((player) => player[0] === '@' ? player.slice(1) : player );
@@ -349,6 +389,9 @@ module.exports = function(robot) {
         const scoreboard = this.getScoreboard(scoreboardName);
         if (scoreboard === null) {
             response.send(this.getMissingScoreboardMessage(scoreboardName));
+            return;
+        } else if (scoreboard.archived) {
+            response.send(this.getArchivedScoreboardMessage(scoreboardName));
             return;
         }
         if (!this.isPlayerOnScoreboard(scoreboardName, player1)) {
@@ -390,6 +433,14 @@ module.exports = function(robot) {
 
     robot.respond(/scoreboard create (\w+) (points|winloss|zerosum|elo)\s*$/i, response => {
         this.handleCreateScoreboard(response, response.match[1], response.match[2], this.getUsername(response));
+    });
+
+    robot.respond(/scoreboard archive (\w+)\s*$/i, response => {
+        this.handleArchiveScoreboard(response, response.match[1], this.getUsername(response));
+    });
+
+    robot.respond(/scoreboard unarchive (\w+)\s*$/i, response => {
+        this.handleUnarchiveScoreboard(response, response.match[1], this.getUsername(response));
     });
 
     robot.respond(/scoreboard delete (\w+)\s*$/i, response => {

@@ -141,6 +141,10 @@ module.exports = function(robot) {
         }
     };
 
+    this.getNameColWidth = collection => {
+        return Math.max(10, collection.reduce((i1, i2) => (i1.name.length > i2.name.length ? i1 : i2)).name.length + 1);
+    };
+
     // response builders
 
     /**
@@ -151,6 +155,15 @@ module.exports = function(robot) {
     this.getRandomResponse = (responseList) => {
         const i = Math.floor(Math.random() * responseList.length);
         return responseList[i];
+    };
+
+    this.getScoreboardListMessage = () => {
+        const boardList = Bookie.getScoreboards();
+        const boardListString = this.stringifyBoardList(boardList);
+        const boardListResponses = [
+            `You want all the books? I'll show yas all the books: \n${boardListString}`
+        ];
+        return this.getRandomResponse(boardListResponses);
     };
 
     this.getShowScoreboardMessage = scoreboardName => {
@@ -240,6 +253,26 @@ module.exports = function(robot) {
     };
 
      /**
+    * Prints the list of scoreboards all pretty-like.
+    *
+    * @param {array} boardList the list of scoreboard objects
+    * @return string
+    */
+    this.stringifyBoardList = boardList => {
+        const nameColumnWidth = this.getNameColWidth(boardList);
+        const colWidth = 10;
+        const tableWidth = (nameColumnWidth + 2) + ((colWidth + 3) * 2);
+        let boardListString = '```' + `.${'_'.repeat(tableWidth)}.\n| ${'Board Name'.padEnd(nameColumnWidth)} | ${'Type'.padEnd(colWidth)} | ${'Players'.padStart(colWidth)} |\n`;
+        boardListString += `|${'='.repeat(tableWidth)}|\n`;
+        for (scoreboard of boardList) {
+            const numPlayers = Object.keys(scoreboard.players).length.toString();
+            boardListString += `| ${scoreboard.name.padEnd(nameColumnWidth)} | ${scoreboard.type.padEnd(colWidth)} | ${numPlayers.padStart(colWidth)} |\n`;
+        }
+        boardListString += `º${'-'.repeat(tableWidth)}º` + '```';
+        return boardListString;
+    };
+
+     /**
     * Prints the scoreboard all pretty-like.
     *
     * @param {string} scoreboardName the name of the scoreboard to turn into a string
@@ -248,10 +281,7 @@ module.exports = function(robot) {
     this.stringifyScoreboard = scoreboardName => {
         const scoreboard = this.getScoreboard(scoreboardName);
         const players = Object.entries(scoreboard.players).map(player => Object.assign({name: player[0]}, player[1]));
-        let playerColWidth = players.reduce((p1, p2) => (p1.name.length > p2.name.length ? p1 : p2)).name.length + 1;
-        if (playerColWidth < 10) {
-            playerColWidth = 10;
-        }
+        let playerColWidth = this.getNameColWidth(players);
         const colWidth = 10;
         let numCols = 1;
         let headerRow = '';
@@ -266,7 +296,7 @@ module.exports = function(robot) {
         }
 
         const boardWidth = (playerColWidth + 2) + ((colWidth + 3) * numCols);
-        let boardString = '```' + `.${'_'.repeat(scoreboardName.length + 2)}.\n| ${scoreboardName} :`;
+        let boardString = '```' + `.${'_'.repeat(scoreboardName.length + 2)}.\n| ${scoreboardName} : ${scoreboard.type}`;
         if (scoreboard.archived) {
             boardString += ' :lock:';
         }
@@ -306,6 +336,10 @@ module.exports = function(robot) {
     };
 
     this.handleGetScoreboard = (response, scoreboardName) => {
+        if (typeof scoreboardName === 'undefined') {
+            response.send(this.getScoreboardListMessage());
+            return;
+        }
         const scoreboard = this.getScoreboard(scoreboardName);
         if (scoreboard === null) {
             response.send(this.getMissingScoreboardMessage(scoreboardName));
@@ -319,6 +353,10 @@ module.exports = function(robot) {
     };
 
     this.handleArchiveScoreboard = (response, scoreboardName, user) => {
+        if (this.getScoreboard(scoreboardName) === null) {
+            response.send(this.getMissingScoreboardMessage(scoreboardName));
+            return;
+        }
         if (this.archiveScoreboard(scoreboardName, user)) {
             response.send(`OK, I'll put ${scoreboardName} on ice for yas.`);
         } else {
@@ -327,6 +365,10 @@ module.exports = function(robot) {
     };
 
     this.handleUnarchiveScoreboard = (response, scoreboardName, user) => {
+        if (this.getScoreboard(scoreboardName) === null) {
+            response.send(this.getMissingScoreboardMessage(scoreboardName));
+            return;
+        }
         if (this.unarchiveScoreboard(scoreboardName, user)) {
             response.send(`OK, ${scoreboardName} is thawed out real nice.`);
         } else {
@@ -335,6 +377,10 @@ module.exports = function(robot) {
     };
 
     this.handleDeleteScoreboard = (response, scoreboardName, user) => {
+        if (this.getScoreboard(scoreboardName) === null) {
+            response.send(this.getMissingScoreboardMessage(scoreboardName));
+            return;
+        }
         if (this.deleteScoreboard(scoreboardName, user)) {
             response.send(`OK, I'll pretend I ain't never seen yas.`);
         } else {
@@ -447,7 +493,7 @@ module.exports = function(robot) {
         this.handleDeleteScoreboard(response, response.match[1], this.getUsername(response));
     });
 
-    robot.respond(/scoreboard (\w+)$/i, response => {
+    robot.respond(/scoreboards? ?(\w+)?$/i, response => {
         this.handleGetScoreboard(response, response.match[1]);
     });
 

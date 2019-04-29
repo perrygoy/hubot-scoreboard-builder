@@ -72,6 +72,15 @@ module.exports = function(robot) {
         return Object.assign({}, scoreboards[scoreboardName]);
     };
 
+    this.getScoreboards = () => {
+        const scoreboards = getScoreboards();
+        let boardList = [];
+        for (scoreboardName of Object.keys(scoreboards).sort((name1, name2) => name2 < name1)) {
+            boardList.push(Object.assign({'name': scoreboardName}, scoreboards[scoreboardName]))
+        };
+        return boardList;
+    };
+
     this.getAllScoreboards = () => {
         const scoreboards = getScoreboards();
         return Object.assign({}, scoreboards);

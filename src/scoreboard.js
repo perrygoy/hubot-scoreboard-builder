@@ -3,7 +3,7 @@
 //       * points  - just keep track of points!
 //       * winloss - the scoreboard keeps tracks of wins and losses with no further validation.
 //       * zerosum - similar to winloss except the wins must equal the losses across all players.
-//       * elo     - zerosum while also calculating Elo!
+//       * elo     - zerosum, records draws, and also calculates Elo!
 //
 // Commands:
 //   scoreboard create {name} [winloss|zerosum|points] - create a new scoreboard with the given name and game style.
@@ -21,6 +21,7 @@
 
 
 const ScoreKeeperMod = require('./scorekeeper');
+const ELO_CONSTANT = process.env.HUBOT_SCOREBOARD_BUILDER_ELO_CONSTANT || 32;
 
 
 module.exports = function(robot) {
@@ -52,7 +53,8 @@ module.exports = function(robot) {
         return Bookie.getOwner(scoreboardName);
     };
 
-    this.isPlayerOnScoreboard = (scoreboard, playerName) => {
+    this.isPlayerOnScoreboard = (scoreboardName, playerName) => {
+        const scoreboard = Bookie.getScoreboard(scoreboardName);
         return typeof scoreboard.players[playerName] !== 'undefined';
     };
 
@@ -64,24 +66,61 @@ module.exports = function(robot) {
         return Bookie.removePlayer(scoreboardName, player);
     };
 
-    this.getScoreObject = (scoreboardType, score) => {
-        let scoreObj = {points: 0, wins: 0, losses: 0};
-        if (scoreboardType == 'points') {
-            scoreObj.points = score
+     /**
+    * Takes a score-ish and turns it into a number.
+    *
+    * @param {string} score the score to turn into a number: win, loss, or +/- N
+    * @return int
+    */
+    this.numberifyScore = score => {
+        let numberedScore = 0;
+        if (!score) {
+            numberedScore = 0;
+        } else if (['win', 'won', 'winner'].includes(score)) {
+            numberedScore = 1;
+        } else if (['loss', 'lose', 'lost', 'loser'].includes(score)) {
+            numberedScore = -1;
+        } else if (score === 'draw') {
+            numberedScore = .5;
         } else {
-            if (score >= 0) {
-                scoreObj.wins = score;
-            } else {
-                scoreObj.losses = score * -1;
-            }
+            numberedScore = Number(score);
         }
-        return scoreObj;
+        return numberedScore;
     };
 
-    this.markScores = (scoreboardName, scoreObj) => {
-        for (playerName of Object.keys(scoreObj)) {
-            let scores = scoreObj[playerName];
-            Bookie.adjustScores(scoreboardName, playerName, scores.wins, scores.losses, scores.points);
+    this.getScoreData = (scoreboardType, score) => {
+        let scoreData = {points: 0, wins: 0, losses: 0, draws: 0};
+        if (scoreboardType == 'points') {
+            scoreData.points = score
+        } else {
+            if (score == .5) {
+                scoreData.draws = 1;
+            } else if (score >= 0) {
+                scoreData.wins = score;
+            } else {
+                scoreData.losses = score * -1;
+            }
+        }
+        return scoreData;
+    };
+
+    this.calculateEloChange = (p1elo, p2elo, score) => {
+        const expected = Math.pow(10, p1elo/400) / (Math.pow(10, p1elo/400) + Math.pow(10, p2elo/400));
+        let eloChange = Math.round(ELO_CONSTANT * (score - expected));
+        if (eloChange == 0){
+            if ((score - expected) < 0) {
+                eloChange = -1;
+            } else {
+                eloChange = 1;
+            }
+        }
+        return eloChange;
+    };
+
+    this.markScores = (scoreboardName, scoreData) => {
+        for (playerName of Object.keys(scoreData)) {
+            let scores = scoreData[playerName];
+            Bookie.adjustScores(scoreboardName, playerName, scores.wins, scores.losses, scores.draws, scores.points, scores.elo);
         }
     };
 
@@ -102,23 +141,7 @@ module.exports = function(robot) {
         }
     };
 
-     /**
-    * Takes a score-ish and turns it into a number.
-    *
-    * @param {string} score the score to turn into a number: win, loss, or +/- N
-    * @return int
-    */
-    this.numberifyScore = score => {
-        let numberedScore = 0;
-        if (['win', 'won', 'winner'].includes(score)) {
-            numberedScore = 1;
-        } else if (['loss', 'lose', 'lost', 'loser'].includes(score)) {
-            numberedScore = -1;
-        } else {
-            numberedScore = Number(score);
-        }
-        return numberedScore;
-    };
+    // response builders
 
     /**
     * Takes in a list of possible responses and returns a random one
@@ -129,8 +152,6 @@ module.exports = function(robot) {
         const i = Math.floor(Math.random() * responseList.length);
         return responseList[i];
     };
-
-    // response builders
 
     this.getShowScoreboardMessage = scoreboardName => {
         const scoreboardResponses = [
@@ -152,7 +173,7 @@ module.exports = function(robot) {
         return this.getRandomResponse(addPlayersSuccessResponses);
     }
 
-    this.getAddPlayerFailMessage = (addedPlayers, scoreboardName) => {
+    this.getNoAddedPlayersMessage = () => {
         const addPlayersFailResponses = [
             `All'a them bubs's already on the list, pal.`,
             `What, you tryin' to double up or somethin'? All's thems already on the list. Now get outta here.`,
@@ -178,6 +199,12 @@ module.exports = function(robot) {
         return this.getRandomResponse(missingResponses);
     };
 
+    this.getMissingScoreboardMessage = scoreboardName => {
+        return `I ain't never heard'a no ${scoreboardName}. Get away from me, kid, ya bother me.`
+    };
+
+    // scoreboard functions
+
     this.getWinPercentage = player => {
         const totalGames = player.wins + player.losses;
         if (totalGames == 0) {
@@ -187,10 +214,15 @@ module.exports = function(robot) {
     };
 
     this.getWinValue = (player, scoreboardType) => {
+        if (scoreboardType === 'elo') {
+            return player.elo;
+        }
         if (scoreboardType === 'points') {
             return player.points - 1;
         }
-        const totalGames = player.wins + player.losses;
+        // draws are new, so just in case...
+        const draws = typeof player.draws === 'undefined' ? 0 : player.draws;
+        const totalGames = player.wins + player.losses + draws;
         return (player.wins - player.losses) + totalGames + 1;
     };
 
@@ -208,18 +240,21 @@ module.exports = function(robot) {
             playerColWidth = 10;
         }
         const colWidth = 10;
-        const numCols = (scoreboard.type == 'points' ? 1 : 2);
-        const boardWidth = (playerColWidth + 2) + ((colWidth + 3) * numCols)
+        let numCols = 1;
+        let headerRow = '';
+        if (scoreboard.type === 'points') {
+            headerRow = `${'Points'.padStart(colWidth)} |`;
+        } else if (['winloss', 'zerosum'].includes(scoreboard.type)) {
+            numCols = 2;
+            headerRow = `${'Wins'.padStart(colWidth)} | ${'Losses'.padStart(colWidth)} |`;
+        } else if (scoreboard.type === 'elo') {
+            numCols = 4;
+            headerRow = `${'Wins'.padStart(colWidth)} | ${'Losses'.padStart(colWidth)} | ${'Draws'.padStart(colWidth)} | ${'Elo'.padStart(colWidth)} |`;
+        }
 
+        const boardWidth = (playerColWidth + 2) + ((colWidth + 3) * numCols);
         let boardString = '```' + `.${'_'.repeat(scoreboardName.length + 2)}.\n| ${scoreboardName} :\n`;
         boardString += `+${'-'.repeat(boardWidth)}.\n`;
-
-        let headerRow = '';
-        if (scoreboard.type == 'points') {
-            headerRow += `${'Points'.padStart(colWidth)} |`;
-        } else {
-            headerRow += `${'Wins'.padStart(colWidth)} | ${'Losses'.padStart(colWidth)} |`;
-        }
         boardString += `| ${'Player'.padEnd(playerColWidth)} | ${headerRow}\n`;
         boardString += `|${'='.repeat(boardWidth)}|\n`;
 
@@ -228,48 +263,33 @@ module.exports = function(robot) {
             boardString += `| ${player.name.padEnd(playerColWidth)} `;
             if (scoreboard.type == 'points') {
                 boardString += `| ${player.points.toString().padStart(colWidth)} |\n`;
-            } else {
+            } else if (['winloss', 'zerosum'].includes(scoreboard.type)) {
                 let wins = player.wins.toString();
                 let losses = player.losses.toString();
                 boardString += `| ${wins.padStart(colWidth)} | ${losses.padStart(colWidth)} |\n`;
+            } else if (scoreboard.type === 'elo') {
+                let wins = player.wins.toString();
+                let losses = player.losses.toString();
+                let draws = player.draws.toString();
+                let elo = player.elo.toString();
+                boardString += `| ${wins.padStart(colWidth)} | ${losses.padStart(colWidth)} | ${draws.padStart(colWidth)} | ${elo.padStart(colWidth)} |\n`;
             }
         }
         boardString += `º${'-'.repeat(boardWidth)}º` + '```';
         return boardString;
     };
 
-    this.getMissingScoreboardMessage = scoreboardName => {
-        return `I ain't never heard'a no ${scoreboardName}. Get away from me, kid, ya bother me.`
-    };
+    // handlers
 
-    // responses
-
-    robot.respond(/scoreboard create (\w+) (winloss|zerosum|points)\s*$/i, response => {
-        const scoreboardName = response.match[1];
-        const type = response.match[2];
-        const user = this.getUsername(response);
-
+    this.handleCreateScoreboard = (response, scoreboardName, type, user) => {
         if (this.createScoreboard(scoreboardName, type, user)) {
             response.send(`All right mac, I gotcha down. ${scoreboardName} is on the books.`);
         } else {
             response.send(`Sorry bub, I'm already keepin' scores under ${scoreboardName}. Pick another one.`);
         }
-    });
+    };
 
-    robot.respond(/scoreboard delete (\w+)\s*$/i, response => {
-        const scoreboardName = response.match[1];
-        const user = this.getUsername(response);
-
-        if (this.deleteScoreboard(scoreboardName, user)) {
-            response.send(`OK, I'll pretend I ain't never seen yas.`);
-        } else {
-            const owner = this.getOwner(scoreboardName);
-            response.send(`We got a wise guy over here. Only the scoreboard owner, ${owner}, can delete ${name}!`);
-        }
-    });
-
-    robot.respond(/scoreboard (\w+)$/i, response => {
-        const scoreboardName = response.match[1];
+    this.handleGetScoreboard = (response, scoreboardName) => {
         const scoreboard = this.getScoreboard(scoreboardName);
         if (scoreboard === null) {
             response.send(this.getMissingScoreboardMessage(scoreboardName));
@@ -280,21 +300,25 @@ module.exports = function(robot) {
         } else {
             response.send(`Ain't much t'tell ya, mac. There are no players for ${scoreboardName}. You can add some with the addplayers command.`);
         }
-    });
+    };
 
-    robot.respond(/addplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
-        const scoreboardName = response.match[1];
-        const scoreboard = this.getScoreboard(scoreboardName);
-        if (scoreboard === null) {
+    this.handleDeleteScoreboard = (response, scoreboardName, user) => {
+        if (this.deleteScoreboard(scoreboardName, user)) {
+            response.send(`OK, I'll pretend I ain't never seen yas.`);
+        } else {
+            response.send(`We got a wise guy over here. Only the scoreboard owner, ${this.getOwner(scoreboardName)}, can delete ${scoreboardName}!`);
+        }
+    };
+
+    this.handleAddPlayers = (response, scoreboardName, players) => {
+        if (this.getScoreboard(scoreboardName) === null) {
             response.send(this.getMissingScoreboardMessage(scoreboardName));
             return;
         }
-        let players = response.match[2]
-            .split(' ')
-            .map((player) => player[0] === '@' ? player.slice(1) : player );
+        const playerList = players.split(' ').map((player) => player[0] === '@' ? player.slice(1) : player );
         let addedPlayers = [];
-        players.forEach((playerName) => {
-            if (!this.isPlayerOnScoreboard(scoreboard, playerName)) {
+        playerList.forEach((playerName) => {
+            if (!this.isPlayerOnScoreboard(scoreboardName, playerName)) {
                 this.addPlayer(scoreboardName, playerName);
                 addedPlayers.push(playerName)
             }
@@ -305,64 +329,86 @@ module.exports = function(robot) {
         if (addedPlayers.length > 0) {
             response.send(this.getAddPlayerSuccessMessage(this.getNiceList(addedPlayers), scoreboardName));
         } else {
-            response.send(this.getAddPlayerFailMessage(this.getNiceList(addedPlayers), scoreboardName));
+            response.send(this.getNoAddedPlayersMessage());
         }
-    });
+    };
 
-    robot.respond(/removeplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
-        const scoreboardName = response.match[1];
+    this.handleRemovePlayers = (response, scoreboardName, players) => {
         if (this.getScoreboard(scoreboardName) === null) {
             response.send(this.getMissingScoreboardMessage(scoreboardName));
             return;
         }
-        let players = response.match[2]
-            .split(' ')
-            .map((player) => player[0] === '@' ? player.slice(1) : player );
-        players.forEach((player) => {
+        const playerList = players.split(' ').map((player) => player[0] === '@' ? player.slice(1) : player );
+        playerList.forEach((player) => {
             this.removePlayer(scoreboardName, player);
         });
         response.send(this.getRemovePlayerMessage(this.getNiceList(players)));
-    });
+    };
 
-    robot.respond(/markscore (\w+?) ([+-][\d]+|win|won|loss|lose|lost) @?(\w+?)(?: ([+-][\d]+|win|won|loss|lose|lost) @?(\w+?))?\s*$/i, response => {
-        const scoreboardName = response.match[1];
+    this.handleMarkScore = (response, scoreboardName, player1, player1score, player2, player2score) => {
         const scoreboard = this.getScoreboard(scoreboardName);
         if (scoreboard === null) {
             response.send(this.getMissingScoreboardMessage(scoreboardName));
             return;
         }
-
-        const firstScore = this.numberifyScore(response.match[2]);
-        const firstPlayer = response.match[3];
-        if (!this.isPlayerOnScoreboard(scoreboard, firstPlayer)) {
-            response.send(this.getMissingPlayerMessage(firstPlayer, scoreboardName));
+        if (!this.isPlayerOnScoreboard(scoreboardName, player1)) {
+            response.send(this.getMissingPlayerMessage(player1, scoreboardName));
             return;
         }
-
         let scores = {};
-        scores[firstPlayer] = this.getScoreObject(scoreboard.type,firstScore);
-        let secondScore = 0;
-        if (typeof response.match[5] !== 'undefined') {
-            secondScore = this.numberifyScore(response.match[4]);
-            const secondPlayer = response.match[5];
-
-            if (!this.isPlayerOnScoreboard(scoreboard, secondPlayer)) {
-                response.send(this.getMissingPlayerMessage(secondPlayer, scoreboardName));
-                return;
-            }
-            scores[secondPlayer] = this.getScoreObject(scoreboard.type, secondScore);
+        scores[player1] = this.getScoreData(scoreboard.type, player1score);
+        if (player1score == .5) {
+            player2score = player1score;  // draw
         }
-        if (scoreboard.type == 'zerosum') {
+        if (typeof player2 !== 'undefined') {
+            if (!this.isPlayerOnScoreboard(scoreboardName, player2)) {
+                response.send(this.getMissingPlayerMessage(player2, scoreboardName));
+                return;
+            }
+            scores[player2] = this.getScoreData(scoreboard.type, player2score);
+        }
+        if (['zerosum', 'elo'].includes(scoreboard.type)) {
             if (typeof response.match[5] === 'undefined') {
-                response.send(`What's the big idea? ${scoreboardName} is a zero-sum scoreboard. I need the other player to mark, Einstein.`)
+                response.send(`What's the big idea? ${scoreboardName} tracks a zero-sum game. I need the other player to mark, Einstein.`)
                 return;
             }
-            if (firstScore + secondScore != 0) {
-                response.send(`Hey, you new around here? Zero-sum scoreboards like ${scoreboardName} need their scores to add to 0. ${firstScore} and ${secondScore} ain't gonna cut it.`);
+            if (player1score != .5 && player1score + player2score != 0) {
+                response.send(`Hey, you new around here? Zero-sum games like ${scoreboardName} is tracking need their scores to add to 0. ${player1score} and ${player2score} ain't gonna cut it.`);
                 return;
             }
+        }
+        if (scoreboard.type === 'elo') {
+            const eloChange = this.calculateEloChange(scoreboard.players[player1].elo, scoreboard.players[player2].elo, player1score < 0 ? 0 : player1score);
+            scores[player1].elo = eloChange;
+            scores[player2].elo = eloChange * -1;
         }
         this.markScores(scoreboardName, scores);
         response.send(`OK pal, here's the latest standin's:\n\n${this.stringifyScoreboard(scoreboardName)}`);
+    };
+
+    // responses
+
+    robot.respond(/scoreboard create (\w+) (points|winloss|zerosum|elo)\s*$/i, response => {
+        this.handleCreateScoreboard(response, response.match[1], response.match[2], this.getUsername(response));
+    });
+
+    robot.respond(/scoreboard delete (\w+)\s*$/i, response => {
+        this.handleDeleteScoreboard(response, response.match[1], this.getUsername(response));
+    });
+
+    robot.respond(/scoreboard (\w+)$/i, response => {
+        this.handleGetScoreboard(response, response.match[1]);
+    });
+
+    robot.respond(/addplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
+        this.handleAddPlayers(response, response.match[1], response.match[2]);
+    });
+
+    robot.respond(/removeplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
+        this.handleRemovePlayers(response, response.match[1], response.match[2]);
+    });
+
+    robot.respond(/markscore (\w+?) ([+-][\d]+|win|won|loss|lose|lost|draw) @?(\w+?)(?: ([+-][\d]+|win|won|loss|lose|lost|draw)? ?@?(\w+?))?\s*$/i, response => {
+        this.handleMarkScore(response, response.match[1], response.match[3], this.numberifyScore(response.match[2]), response.match[5], this.numberifyScore(response.match[4]));
     });
 };

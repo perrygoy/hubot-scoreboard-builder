@@ -64,7 +64,7 @@ module.exports = function(robot) {
 
     this.addPlayer = (scoreboardName, playerName) => {
         let scoreboards = getScoreboards();
-        if (typeof scoreboards[scoreboardName] === null) {
+        if (typeof scoreboards[scoreboardName] === 'undefined') {
             return false;
         } else if(typeof scoreboards[scoreboardName].players[playerName] !== 'undefined') {
             return false
@@ -72,7 +72,9 @@ module.exports = function(robot) {
         scoreboards[scoreboardName].players[playerName] = {
             wins: 0,
             losses: 0,
+            draws: 0,
             points: 0,
+            elo: 1500,
         };
         save(scoreboards);
         return true;
@@ -88,7 +90,7 @@ module.exports = function(robot) {
         return true;
     };
 
-    this.adjustScores = (scoreboardName, playerName, wins = 0, losses = 0, points = 0) => {
+    this.adjustScores = (scoreboardName, playerName, wins = 0, losses = 0, draws = 0, points = 0, elo = 0) => {
         let scoreboards = getScoreboards();
         if (typeof scoreboards[scoreboardName] === 'undefined') {
             return false;
@@ -96,7 +98,9 @@ module.exports = function(robot) {
         let player = scoreboards[scoreboardName].players[playerName];
         player.wins += wins;
         player.losses += losses;
+        player.draws += draws;
         player.points += points;
+        player.elo += elo;
         save(scoreboards);
         return Object.assign({}, scoreboards[scoreboardName]);
     };

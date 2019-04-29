@@ -9,8 +9,9 @@ Create scoreboards to keep track of wins, losses, and points for whatever you wa
     > OK, I've penciled in Perry, Katy, Vince, and Jerome on Duels.
     hubot markscore +2 Perry -2 Vince
     > OK pal, here's the latest standin's:
-    > Duels:
-    > .---------------------------------.
+    > ._______.
+    > | Duels :
+    > +---------------------------------.
     > | Players |      Wins |    Losses |
     > |=================================|
     > | Perry   |         2 |         0 |
@@ -41,6 +42,8 @@ There are three different types of scoreboards:
   * keeps track of wins and losses, but doesn't verify that they add up to 0.
 * zerosum
   * keeps track of wins and losses, enforcing that the total scores add up to 0.
+* elo
+  * all the rigueur of zerosum while also calculating Elo scores.
 
 ## Add it to your hubot!
 

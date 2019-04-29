@@ -298,7 +298,7 @@ module.exports = function(robot) {
         const boardWidth = (playerColWidth + 2) + ((colWidth + 3) * numCols);
         let boardString = '```' + `.${'_'.repeat(scoreboardName.length + 2)}.\n| ${scoreboardName} : ${scoreboard.type}`;
         if (scoreboard.archived) {
-            boardString += ' :lock:';
+            boardString += ' (archived)';
         }
         boardString += `\n+${'-'.repeat(boardWidth)}.\n`;
         boardString += `| ${'Player'.padEnd(playerColWidth)} | ${headerRow}\n`;

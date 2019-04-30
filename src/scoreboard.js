@@ -231,27 +231,17 @@ module.exports = function(robot) {
 
     // scoreboard functions
 
-    this.getWinPercentage = player => {
-        const totalGames = player.wins + player.losses;
-        if (totalGames == 0) {
-            return player.points - 1;
-        }
-        return player.wins / totalGames;
-    };
-
-    this.getWinValue = (player, scoreboardType) => {
+    this.sortPlayers = (players, scoreboardType) => {
         if (scoreboardType === 'elo') {
-            return player.elo;
+            return players.sort((p1, p2) => p2.elo - p1.elo);
         }
         if (scoreboardType === 'points') {
-            return player.points - 1;
+            return players.sort((p1, p2) => p2.points - p1.points);
         }
-        let value = player.wins;
-        if (player.wins != 0 || player.losses != 0) {
-            // make sure 0-0 records are on the bottom
-            value += 1;
-        }
-        return value;
+        // more losses puts you lower
+        players.sort((p1, p2) => p1.losses - p2.losses);
+        // more wins puts you higher
+        return players.sort((p1, p2) => p2.wins - p1.wins)
     };
 
      /**
@@ -306,7 +296,7 @@ module.exports = function(robot) {
         boardString += `| ${'Player'.padEnd(playerColWidth)} | ${headerRow}\n`;
         boardString += `|${'='.repeat(boardWidth)}|\n`;
 
-        const sortedPlayers = players.sort((p1, p2) => this.getWinValue(p2, scoreboard.type) - this.getWinValue(p1, scoreboard.type));
+        const sortedPlayers = this.sortPlayers(players, scoreboard.type);
         for (player of sortedPlayers) {
             boardString += `| ${player.name.padEnd(playerColWidth)} `;
             if (scoreboard.type == 'points') {

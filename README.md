@@ -10,7 +10,7 @@ Create scoreboards to keep track of wins, losses, and points for whatever you wa
     hubot markscore +2 Perry -2 Vince
     > OK pal, here's the latest standin's:
     > ._______.
-    > | Duels :
+    > | Duels : zerosum
     > +---------------------------------.
     > | Players |      Wins |    Losses |
     > |=================================|

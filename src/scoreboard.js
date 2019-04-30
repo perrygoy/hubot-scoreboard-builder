@@ -246,10 +246,12 @@ module.exports = function(robot) {
         if (scoreboardType === 'points') {
             return player.points - 1;
         }
-        // draws are new, so just in case...
-        const draws = typeof player.draws === 'undefined' ? 0 : player.draws;
-        const totalGames = player.wins + player.losses + draws;
-        return (player.wins - player.losses) + totalGames + 1;
+        let value = player.wins;
+        if (player.wins != 0 || player.losses != 0) {
+            // make sure 0-0 records are on the bottom
+            value += 1;
+        }
+        return value;
     };
 
      /**

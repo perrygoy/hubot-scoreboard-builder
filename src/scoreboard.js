@@ -88,6 +88,23 @@ module.exports = function(robot) {
         return numberedScore;
     };
 
+    this.isValidScoreString = (scoreboard, scorePieces) => {
+        if (scorePieces.length == 1) {
+            return !(isNaN(this.numberifyScore(scorePieces[0])) || ['elo', 'zerosum'].includes(scoreboard.type));
+        } else if (scorePieces.length % 2 != 0) {
+            return false;
+        }
+        const scores = scorePieces.filter((_, index) => index % 2 == 0).map(this.numberifyScore);
+        if (scores.includes(NaN)) {
+            return false;
+        }
+        const scoreTotal = scores.reduce((tot, num) => tot + num)
+        if ( scoreTotal != 0) {
+            return !['elo', 'zerosum'].includes(scoreboard.type);
+        }
+        return true;
+    };
+
     this.getScoreData = (scoreboardType, score) => {
         let scoreData = {points: 0, wins: 0, losses: 0, draws: 0};
         if (scoreboardType == 'points') {
@@ -99,6 +116,23 @@ module.exports = function(robot) {
                 scoreData.wins = score;
             } else {
                 scoreData.losses = score * -1;
+            }
+        }
+        return scoreData;
+    };
+
+    this.bundleScoreData = (scoreboard, scorePieces) => {
+        let scoreData = {};
+        if (scorePieces.length == 1) {
+            const players = Object.keys(scoreboard.players);
+            for (const player of players) {
+                scoreData[player] = this.getScoreData(scoreboard.type, this.numberifyScore(scorePieces[0]));
+            }
+        } else {
+            for (let i = 0; i < scorePieces.length - 1; i += 2) {
+                const score = this.numberifyScore(scorePieces[i]);
+                const player = scorePieces[i+1];
+                scoreData[player] = this.getScoreData(scoreboard.type, score);
             }
         }
         return scoreData;
@@ -118,7 +152,7 @@ module.exports = function(robot) {
     };
 
     this.markScores = (scoreboardName, scoreData) => {
-        for (playerName of Object.keys(scoreData)) {
+        for (const playerName of Object.keys(scoreData)) {
             let scores = scoreData[playerName];
             Bookie.adjustScores(scoreboardName, playerName, scores.wins, scores.losses, scores.draws, scores.points, scores.elo);
         }
@@ -226,8 +260,15 @@ module.exports = function(robot) {
             `Ain't no one seen ${scoreboardName} in years. I can describe it for yas though.`,
         ];
         return this.getRandomResponse(archivedBoardResponses);
-
     };
+
+    this.getInvalidScoreStringMessage = scoreString => {
+        const invalidScoreStringResponses = [
+            `Kid, you may as well be speakin' gibberish. "${scoreString}" don't make a lick a sense to me.`,
+            `You wanna try again there, boss? I can't make heads er tails a "${scoreString}."`,
+        ];
+        return this.getRandomResponse(invalidScoreStringResponses);
+    }
 
     // scoreboard functions
 
@@ -256,7 +297,7 @@ module.exports = function(robot) {
         const tableWidth = (nameColumnWidth + 2) + ((colWidth + 3) * 2);
         let boardListString = '```' + `.${'_'.repeat(tableWidth)}.\n| ${'Board Name'.padEnd(nameColumnWidth)} | ${'Type'.padEnd(colWidth)} | ${'Players'.padStart(colWidth)} |\n`;
         boardListString += `|${'='.repeat(tableWidth)}|\n`;
-        for (scoreboard of boardList) {
+        for (const scoreboard of boardList) {
             const numPlayers = Object.keys(scoreboard.players).length.toString();
             boardListString += `| ${scoreboard.name.padEnd(nameColumnWidth)} | ${scoreboard.type.padEnd(colWidth)} | ${numPlayers.padStart(colWidth)} |\n`;
         }
@@ -297,7 +338,7 @@ module.exports = function(robot) {
         boardString += `|${'='.repeat(boardWidth)}|\n`;
 
         const sortedPlayers = this.sortPlayers(players, scoreboard.type);
-        for (player of sortedPlayers) {
+        for (const player of sortedPlayers) {
             boardString += `| ${player.name.padEnd(playerColWidth)} `;
             if (scoreboard.type == 'points') {
                 boardString += `| ${player.points.toString().padStart(colWidth)} |\n`;
@@ -423,7 +464,7 @@ module.exports = function(robot) {
         response.send(this.getRemovePlayerMessage(this.getNiceList(players)));
     };
 
-    this.handleMarkScore = (response, scoreboardName, player1, player1score, player2, player2score) => {
+    this.handleMarkScore = (response, scoreboardName, scoresString) => {
         const scoreboard = this.getScoreboard(scoreboardName);
         if (scoreboard === null) {
             response.send(this.getMissingScoreboardMessage(scoreboardName));
@@ -432,38 +473,24 @@ module.exports = function(robot) {
             response.send(this.getArchivedScoreboardMessage(scoreboardName));
             return;
         }
-        if (!this.isPlayerOnScoreboard(scoreboardName, player1)) {
-            response.send(this.getMissingPlayerMessage(player1, scoreboardName));
+        const scorePieces = scoresString.split(' ');
+        if (scoresString === '' || !this.isValidScoreString(scoreboard, scorePieces)) {
+            let message = this.getInvalidScoreStringMessage(scoresString);
+            if (['elo', 'zerosum'].includes(scoreboard.type)) {
+                message += ` Remember that ${scoreboardName} is trackin' a zero-sum game.`;
+            }
+            response.send(message);
             return;
         }
-        let scores = {};
-        scores[player1] = this.getScoreData(scoreboard.type, player1score);
-        if (player1score == .5) {
-            player2score = player1score;  // draw
-        }
-        if (typeof player2 !== 'undefined') {
-            if (!this.isPlayerOnScoreboard(scoreboardName, player2)) {
-                response.send(this.getMissingPlayerMessage(player2, scoreboardName));
-                return;
-            }
-            scores[player2] = this.getScoreData(scoreboard.type, player2score);
-        }
-        if (['zerosum', 'elo'].includes(scoreboard.type)) {
-            if (typeof response.match[5] === 'undefined') {
-                response.send(`What's the big idea? ${scoreboardName} tracks a zero-sum game. I need the other player to mark, Einstein.`)
-                return;
-            }
-            if (player1score != .5 && player1score + player2score != 0) {
-                response.send(`Hey, you new around here? Zero-sum games like ${scoreboardName} is tracking need their scores to add to 0. ${player1score} and ${player2score} ain't gonna cut it.`);
+        const players = scorePieces.filter((_, index) => index % 2 == 1);
+        for (const player of players) {
+            if (!this.isPlayerOnScoreboard(scoreboardName, player)) {
+                response.send(this.getMissingPlayerMessage(player, scoreboardName));
                 return;
             }
         }
-        if (scoreboard.type === 'elo') {
-            const eloChange = this.calculateEloChange(scoreboard.players[player1].elo, scoreboard.players[player2].elo, player1score < 0 ? 0 : player1score);
-            scores[player1].elo = eloChange;
-            scores[player2].elo = eloChange * -1;
-        }
-        this.markScores(scoreboardName, scores);
+        const scoreData = this.bundleScoreData(scoreboard, scorePieces);
+        this.markScores(scoreboardName, scoreData);
         response.send(`OK pal, here's the latest standin's:\n\n${this.stringifyScoreboard(scoreboardName)}`);
     };
 
@@ -497,7 +524,7 @@ module.exports = function(robot) {
         this.handleRemovePlayers(response, response.match[1], response.match[2]);
     });
 
-    robot.respond(/markscore (\w+?) ([+-][\d]+|win|won|loss|lose|lost|draw) @?(\w+?)(?: ([+-][\d]+|win|won|loss|lose|lost|draw)? ?@?(\w+?))?\s*$/i, response => {
-        this.handleMarkScore(response, response.match[1], response.match[3], this.numberifyScore(response.match[2]), response.match[5], this.numberifyScore(response.match[4]));
+    robot.respond(/markscore (\w+) ((?: ?([+-][\d]+|win|won|loss|lose|lost|draw)( @?(\w+))?)+)\s*$/i, response => {
+        this.handleMarkScore(response, response.match[1], response.match[2]);
     });
 };

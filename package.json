@@ -1,6 +1,6 @@
 {
   "name": "hubot-scoreboard-builder",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "description": "Store scores and more! No, just scores.",
   "main": "index.coffee",
   "scripts": {
@@ -15,6 +15,10 @@
   "author": {
     "name": "Perry Goy",
     "email": "perry.goy@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/perrygoy/hubot-scoreboard-builder.git"
   },
   "license": "ISC",
   "dependencies": {},

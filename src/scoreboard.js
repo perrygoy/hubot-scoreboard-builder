@@ -105,10 +105,9 @@ module.exports = function(robot) {
         return true;
     };
 
-    this.getScoreData = (scoreboardType, score) => {
-        let scoreData = {points: 0, wins: 0, losses: 0, draws: 0};
+    this.getScoreData = (scoreboardType, score, scoreData = {points: 0, wins: 0, losses: 0, draws: 0}) => {
         if (scoreboardType == 'points') {
-            scoreData.points = score
+            scoreData.points += score;
         } else {
             if (score == .5) {
                 scoreData.draws = 1;
@@ -132,7 +131,7 @@ module.exports = function(robot) {
             for (let i = 0; i < scorePieces.length - 1; i += 2) {
                 const score = this.numberifyScore(scorePieces[i]);
                 const player = scorePieces[i+1];
-                scoreData[player] = this.getScoreData(scoreboard.type, score);
+                scoreData[player] = this.getScoreData(scoreboard.type, score, scoreData[player]);
             }
         }
         return scoreData;
@@ -524,7 +523,11 @@ module.exports = function(robot) {
         this.handleRemovePlayers(response, response.match[1], response.match[2]);
     });
 
-    robot.respond(/markscore (\w+) ((?: ?([+-][\d]+|win|won|loss|lose|lost|draw)( @?(\w+))?)+)\s*$/i, response => {
+    robot.respond(/markscore (\w+) ((?: ?([+-][\d]+|w|win|winner|won|l|loss|lose|loser|lost|draw)( @?(\w+))?)+)\s*$/i, response => {
+        this.handleMarkScore(response, response.match[1], response.match[2]);
+    });
+
+    robot.hear(/^!mark (\w+) ((?: ?([+-][\d]+|w|win|winner|won|l|loss|lose|loser|lost|draw)( @?(\w+))?)+)\s*$/i, response => {
         this.handleMarkScore(response, response.match[1], response.match[2]);
     });
 };

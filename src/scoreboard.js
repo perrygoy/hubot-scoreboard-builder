@@ -475,7 +475,7 @@ module.exports = function(robot) {
         if (removedPlayers.length > 0) {
             response.send(this.getRemovePlayerMessage(this.getNiceList(removedPlayers)));
         } else {
-            response.send(this.getRemovedPlayersMessage());
+            response.send(this.getNoRemovedPlayersMessage());
         }
     };
 

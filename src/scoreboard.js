@@ -515,11 +515,23 @@ module.exports = function(robot) {
         this.handleGetScoreboard(response, response.match[1]);
     });
 
+    robot.hear(/^!(scoreboards?|board) ?(\w+)?$/i, response => {
+        this.handleGetScoreboard(response, response.match[2]);
+    });
+
     robot.respond(/addplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
         this.handleAddPlayers(response, response.match[1], response.match[2]);
     });
 
+    robot.hear(/^!addplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
+        this.handleAddPlayers(response, response.match[1], response.match[2]);
+    });
+
     robot.respond(/removeplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
+        this.handleRemovePlayers(response, response.match[1], response.match[2]);
+    });
+
+    robot.hear(/!removeplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
         this.handleRemovePlayers(response, response.match[1], response.match[2]);
     });
 

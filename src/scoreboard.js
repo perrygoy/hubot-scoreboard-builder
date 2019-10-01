@@ -468,7 +468,7 @@ module.exports = function(robot) {
         let removedPlayers = [];
         playerList.forEach((playerName) => {
             if (this.isPlayerOnScoreboard(scoreboardName, playerName)){
-                this.removePlayer(scoreboardName, player);
+                this.removePlayer(scoreboardName, playerName);
                 removedPlayers.push(playerName)
             }
         });

@@ -227,6 +227,14 @@ module.exports = function(robot) {
         return this.getRandomResponse(addPlayersFailResponses);
     };
 
+    this.getNoRemovedPlayersMessage = () => {
+        const removePlayersFailResponses = [
+            `I don't know any o' them chumps.`,
+            `Nothin' here but ghosts, pal.`,
+        ];
+        return this.getRandomResponse(removePlayersFailResponses);
+    };
+
     this.getRemovePlayerMessage = players => {
         const removeResponses = [
             `Alright, Johnny. I don't know what business you two had, but I ain't askin' neither. ${players} is gone.`,
@@ -457,10 +465,18 @@ module.exports = function(robot) {
             return;
         }
         const playerList = players.split(' ').map((player) => player[0] === '@' ? player.slice(1) : player );
-        playerList.forEach((player) => {
-            this.removePlayer(scoreboardName, player);
+        let removedPlayers = [];
+        playerList.forEach((playerName) => {
+            if (this.isPlayerOnScoreboard(scoreboardName, playerName)){
+                this.removePlayer(scoreboardName, player);
+                removedPlayers.push(playerName)
+            }
         });
-        response.send(this.getRemovePlayerMessage(this.getNiceList(players)));
+        if (removedPlayers.length > 0) {
+            response.send(this.getRemovePlayerMessage(this.getNiceList(removedPlayers)));
+        } else {
+            response.send(this.getRemovedPlayersMessage());
+        }
     };
 
     this.handleMarkScore = (response, scoreboardName, scoresString) => {

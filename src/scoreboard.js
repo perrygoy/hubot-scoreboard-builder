@@ -256,6 +256,13 @@ module.exports = function(robot) {
             `All right boss, ${oldName} is kaput. We ain't never heard 'a them. But if y'lookin' fer ${newName}? Yeah, I knows 'em.`,
         ];
         return this.getRandomResponse(changeResponses);
+
+    this.getNoRemovedPlayersMessage = () => {
+        const removePlayersFailResponses = [
+            `I don't know any o' them chumps.`,
+            `Nothin' here but ghosts, pal.`,
+        ];
+        return this.getRandomResponse(removePlayersFailResponses);
     };
 
     this.getRemovePlayerMessage = players => {
@@ -588,10 +595,18 @@ module.exports = function(robot) {
             return;
         }
         const playerList = players.split(' ').map((player) => player[0] === '@' ? player.slice(1) : player );
-        playerList.forEach((player) => {
-            this.removePlayer(scoreboardName, player);
+        let removedPlayers = [];
+        playerList.forEach((playerName) => {
+            if (this.isPlayerOnScoreboard(scoreboardName, playerName)){
+                this.removePlayer(scoreboardName, playerName);
+                removedPlayers.push(playerName)
+            }
         });
-        response.send(this.getRemovePlayerMessage(this.getNiceList(players)));
+        if (removedPlayers.length > 0) {
+            response.send(this.getRemovePlayerMessage(this.getNiceList(removedPlayers)));
+        } else {
+            response.send(this.getNoRemovedPlayersMessage());
+        }
     };
 
     this.handleMarkScore = (response, scoreboardName, scoresString) => {
@@ -646,15 +661,28 @@ module.exports = function(robot) {
         this.handleGetScoreboard(response, response.match[1], response.match[2]);
     });
 
+    robot.hear(/^!(scoreboards?|board) ?(\w+)?$/i, response => {
+        this.handleGetScoreboard(response, response.match[2]);
+    });
+
     robot.respond(/addplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
         this.handleAddPlayers(response, response.match[1], response.match[2]);
     });
 
+<<<<<<< HEAD
     robot.respond(/changeplayers? (\w+) (@?\w+)\s+(@?\w+)\s*$/i, response => {
         this.handleChangePlayerName(response, response.match[1], response.match[2], response.match[3]);
+=======
+    robot.hear(/^!addplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
+        this.handleAddPlayers(response, response.match[1], response.match[2]);
+>>>>>>> 53b7a314e6d6baed757e811f788882e478d9b834
     });
 
     robot.respond(/removeplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
+        this.handleRemovePlayers(response, response.match[1], response.match[2]);
+    });
+
+    robot.hear(/!removeplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
         this.handleRemovePlayers(response, response.match[1], response.match[2]);
     });
 

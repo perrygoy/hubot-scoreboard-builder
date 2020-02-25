@@ -6,15 +6,17 @@
 //       * elo     - zerosum, records draws, and also calculates Elo!
 //
 // Commands:
-//   scoreboard create {name} [winloss|zerosum|points] - create a new scoreboard with the given name and game style.
-//   scoreboard delete {scoreboard} - remove a scoreboard. Only the scoreboard's creator can do this.
-//   scoreboard {name} - view a scoreboard.
-//   addplayer {scoreboard} {player} - add a player to the scoreboard.
-//   removeplayer {scoreboard} {player} - remove a player from the scoreboard.
-//   markscore {scoreboard} win {user} [loss {user}] - mark a winner/loser!
+//   hubot scoreboard create {name} [winloss|zerosum|points] - create a new scoreboard with the given name and game style.
+//   hubot scoreboard delete {scoreboard} - remove a scoreboard. Only the scoreboard's creator can do this.
+//   hubot scoreboard {name} - view a scoreboard.
+//   hubot addplayer {scoreboard} {player} - add a player to the scoreboard.
+//   hubot changeplayer {scoreboard} {oldname} {newname} - update a player's name
+//   hubot removeplayer {scoreboard} {player} - remove a player from the scoreboard.
+//   hubot markscore {scoreboard} win {user} [loss {user}] - mark a winner/loser!
 //       The second user is optional if the scoreboard is not zerosum.
-//   markscore {scoreboard} +N {user} [-N {user}] - mark a score increase or decrease!
+//   hubot markscore {scoreboard} +N {user} [-N {user}] - mark a score increase or decrease!
 //       The second user is optional if the scoreboard is not zerosum.
+//   !mark {scoreboard} win {user} [loss {user}] - shorthand for the above commands
 //
 // Author:
 //   Perry Goy https://github.com/perrygoy
@@ -61,6 +63,10 @@ module.exports = function(robot) {
     this.addPlayer = (scoreboardName, player) => {
         return Bookie.addPlayer(scoreboardName, player);
     };
+
+    this.changePlayer = (scoreboardName, oldName, newName) => {
+        return Bookie.changePlayer(scoreboardName, oldName, newName);
+    }
 
     this.removePlayer = (scoreboardName, player) => {
         return Bookie.removePlayer(scoreboardName, player);
@@ -213,7 +219,7 @@ module.exports = function(robot) {
         const addPlayersSuccessResponses = [
             `OK, I've penciled in ${addedPlayers} on ${scoreboardName}.`,
             `OK pal, I got ${addedPlayers}. We're all set here.`,
-            `Johnny Two-fingers told me this fell'd take us all the way to the bank. ${addedPlayers} have been added on ${scoreboardName}.`,
+            `Johnny Two-fingers told me this fella'd take us all the way to the bank. ${addedPlayers} have been added on ${scoreboardName}.`,
             `Why do _you_ think his name is Johnny Two-fingers?`,
         ];
         return this.getRandomResponse(addPlayersSuccessResponses);
@@ -225,6 +231,15 @@ module.exports = function(robot) {
             `What, you tryin' to double up or somethin'? All's thems already on the list. Now get outta here.`,
         ];
         return this.getRandomResponse(addPlayersFailResponses);
+    };
+
+    this.getChangedPlayerMessage = (oldName, newName) => {
+        const changeResponses = [
+            `Between you an' me, this chump feels like a ${newName}. Got it all squared away for ya, pal.`,
+            `${oldName}, ${newName}, all's fine by me s'long as ya all pay yer dues.`,
+            `All right boss, ${oldName} is kaput. We ain't never heard 'a them. But if y'lookin' fer ${newName}? Yeah, I knows 'em.`,
+        ];
+        return this.getRandomResponse(changeResponses);
     };
 
     this.getRemovePlayerMessage = players => {
@@ -241,6 +256,7 @@ module.exports = function(robot) {
         const missingResponses = [
             `I don't know what kind of game you're playin' here, bud, but ${player} isn't marked on ${scoreboardName}.`,
             `Who you kiddin'? ${player} isn't marked on ${scoreboardName}.`,
+            `I ain't never heard 'a no ${player}, bub. Yer wastin' my time.`,
         ];
         return this.getRandomResponse(missingResponses);
     };
@@ -447,6 +463,22 @@ module.exports = function(robot) {
         }
     };
 
+    this.handleChangePlayerName = (response, scoreboardName, oldName, newName) => {
+        const scoreboard = this.getScoreboard(scoreboardName);
+        if (scoreboard === null) {
+            response.send(this.getMissingScoreboardMessage(scoreboardName));
+            return;
+        } else if (scoreboard.archived) {
+            response.send(this.getArchivedScoreboardMessage(scoreboardName));
+            return;
+        }
+        if (this.changePlayer(scoreboardName, oldName, newName)) {
+            response.send(this.getChangedPlayerMessage(oldName, newName));
+        } else {
+            response.send(this.getMissingPlayerMessage(oldName));
+        }
+    }
+
     this.handleRemovePlayers = (response, scoreboardName, players) => {
         const scoreboard = this.getScoreboard(scoreboardName);
         if (scoreboard === null) {
@@ -517,6 +549,10 @@ module.exports = function(robot) {
 
     robot.respond(/addplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
         this.handleAddPlayers(response, response.match[1], response.match[2]);
+    });
+
+    robot.respond(/changeplayers? (\w+) (@?\w+)\s+(@?\w+)\s*$/i, response => {
+        this.handleChangePlayerName(response, response.match[1], response.match[2], response.match[3]);
     });
 
     robot.respond(/removeplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {

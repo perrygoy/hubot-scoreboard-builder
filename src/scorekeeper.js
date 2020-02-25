@@ -75,7 +75,7 @@ module.exports = function(robot) {
     this.getScoreboards = () => {
         const scoreboards = getScoreboards();
         let boardList = [];
-        for (scoreboardName of Object.keys(scoreboards).sort((name1, name2) => name2 < name1)) {
+        for (let scoreboardName of Object.keys(scoreboards).sort((name1, name2) => name2 < name1)) {
             boardList.push(Object.assign({'name': scoreboardName}, scoreboards[scoreboardName]))
         };
         return boardList;
@@ -112,9 +112,22 @@ module.exports = function(robot) {
         return true;
     };
 
+    this.changePlayer = (scoreboardName, oldName, newName) => {
+        let scoreboards = getScoreboards();
+        if (typeof scoreboards[scoreboardName] === 'undefined') {
+            return false;
+        } else if (typeof scoreboards[scoreboardName].players[oldName] === 'undefined') {
+            return false;
+        }
+        scoreboards[scoreboardName].players[newName] = scoreboards[scoreboardName].players[oldName];
+        delete scoreboards[scoreboardName].players[oldName];
+        save(scoreboards);
+        return true;
+    }
+
     this.removePlayer = (scoreboardName, playerName) => {
         let scoreboards = getScoreboards();
-        if (typeof scoreboards[scoreboardName] === null) {
+        if (typeof scoreboards[scoreboardName] === 'undefined') {
             return false;
         }
         delete scoreboards[scoreboardName].players[playerName];

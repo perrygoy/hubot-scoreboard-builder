@@ -256,6 +256,7 @@ module.exports = function(robot) {
             `All right boss, ${oldName} is kaput. We ain't never heard 'a them. But if y'lookin' fer ${newName}? Yeah, I knows 'em.`,
         ];
         return this.getRandomResponse(changeResponses);
+    };
 
     this.getNoRemovedPlayersMessage = () => {
         const removePlayersFailResponses = [

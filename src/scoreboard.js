@@ -669,13 +669,12 @@ module.exports = function(robot) {
         this.handleAddPlayers(response, response.match[1], response.match[2]);
     });
 
-<<<<<<< HEAD
-    robot.respond(/changeplayers? (\w+) (@?\w+)\s+(@?\w+)\s*$/i, response => {
-        this.handleChangePlayerName(response, response.match[1], response.match[2], response.match[3]);
-=======
     robot.hear(/^!addplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {
         this.handleAddPlayers(response, response.match[1], response.match[2]);
->>>>>>> 53b7a314e6d6baed757e811f788882e478d9b834
+    });
+
+    robot.respond(/changeplayers? (\w+) (@?\w+)\s+(@?\w+)\s*$/i, response => {
+        this.handleChangePlayerName(response, response.match[1], response.match[2], response.match[3]);
     });
 
     robot.respond(/removeplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {

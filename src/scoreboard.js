@@ -336,8 +336,8 @@ module.exports = function(robot) {
         if (scoreboard.type === 'points') {
             headerRow = `${'Points'.padStart(colWidth)} |`;
         } else if (['winloss', 'zerosum'].includes(scoreboard.type)) {
-            numCols = 2;
-            headerRow = `${'Wins'.padStart(colWidth)} | ${'Losses'.padStart(colWidth)} |`;
+            numCols = 3;
+            headerRow = `${'Wins'.padStart(colWidth)} | ${'Losses'.padStart(colWidth)} | ${'Win Ratio'.padStart(colWidth)} |`;
         } else if (scoreboard.type === 'elo') {
             numCols = 4;
             headerRow = `${'Wins'.padStart(colWidth)} | ${'Losses'.padStart(colWidth)} | ${'Draws'.padStart(colWidth)} | ${'Elo'.padStart(colWidth)} |`;
@@ -360,7 +360,8 @@ module.exports = function(robot) {
             } else if (['winloss', 'zerosum'].includes(scoreboard.type)) {
                 let wins = player.wins.toString();
                 let losses = player.losses.toString();
-                boardString += `| ${wins.padStart(colWidth)} | ${losses.padStart(colWidth)} |\n`;
+                let ratio = (player.wins / (player.wins + player.losses)).toFixed(3);
+                boardString += `| ${wins.padStart(colWidth)} | ${losses.padStart(colWidth)} | ${ratio.padStart(colWidth)} |\n`;
             } else if (scoreboard.type === 'elo') {
                 let wins = player.wins.toString();
                 let losses = player.losses.toString();

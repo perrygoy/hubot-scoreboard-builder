@@ -26,12 +26,22 @@ Create scoreboards to keep track of wins, losses, and points for whatever you wa
 
 * hubot scoreboard create {name} [winloss|zerosum|points] - create a new scoreboard with the given name and game style.
 * hubot scoreboard delete {scoreboard} - remove a scoreboard. Only the scoreboard's creator can do this.
+* hubot scoreboard {name} [full|playername] - view a scoreboard. Full will show the full board, playername will return playername's record specifically, if neither are included then that board's top SHOW_NUM will be shown.
 * hubot addplayer {scoreboard} {player} - add a player to the scoreboard.
+* hubot changeplayer {scoreboard} {oldname} {newname} - update a player's name
 * hubot removeplayer {scoreboard} {player} - remove a player from the scoreboard.
-* hubot markscore {scoreboard} win {user} [loss {user}] - mark a winner/loser! The second user is optional if the scoreboard is not zerosum.
-* hubot markscore {scoreboard} +N {user} [-N {user}] - mark a score increase or decrease! The second user is optional if the scoreboard is not zerosum.
+* hubot markscore {scoreboard} win {user} [loss {user}] - mark a winner/loser! The second user is optional if the scoreboard is not zerosum or elo.
+* hubot markscore {scoreboard} +N {user} [-N {user}] - mark a score increase or decrease! The second user is optional if the scoreboard is not zerosum or elo.
+* !mark ... - shorthand for the above two commands that replaces the "hubot markscore" part.
 
-Uses hubot-brain to keep track of the quotes.
+Uses hubot-brain to keep track of the scoreboards.
+
+## Configuration
+
+Scoreboard-builder uses two environment variables:
+
+* `HUBOT_SCOREBOARD_BUILDER_ELO_CONSTANT` to set the ELO constant (K, if you're familiar with [the formula](https://en.wikipedia.org/wiki/Elo_rating_system#Mathematical_details)). The default is 32, which is somewhat common, but you can change it to your whims.
+* `HUBOT_SCOREBOARD_BUILDER_SHOW_NUM` to configure how many people to show maximum on a scoreboard, unless you ask for the full list. Default is the top 5.
 
 ## Types of Scoreboards
 

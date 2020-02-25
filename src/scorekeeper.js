@@ -69,7 +69,7 @@ module.exports = function(robot) {
         if (typeof scoreboards[scoreboardName] === 'undefined') {
             return null;
         }
-        return Object.assign({}, scoreboards[scoreboardName]);
+        return Object.assign({name: scoreboardName}, scoreboards[scoreboardName]);
     };
 
     this.getScoreboards = () => {
@@ -77,7 +77,7 @@ module.exports = function(robot) {
         let boardList = [];
         for (let scoreboardName of Object.keys(scoreboards).sort((name1, name2) => name2 < name1)) {
             boardList.push(Object.assign({'name': scoreboardName}, scoreboards[scoreboardName]))
-        };
+        }
         return boardList;
     };
 

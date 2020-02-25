@@ -18,12 +18,16 @@
 //       The second user is optional if the scoreboard is not zerosum.
 //   !mark {scoreboard} win {user} [loss {user}] - shorthand for the above commands
 //
+// Config
+//
 // Author:
 //   Perry Goy https://github.com/perrygoy
 
 
 const ScoreKeeperMod = require('./scorekeeper');
 const ELO_CONSTANT = process.env.HUBOT_SCOREBOARD_BUILDER_ELO_CONSTANT || 32;
+const SHOW_NUM = process.env.HUBOT_SCOREBOARD_BUILDER_SHOW_NUM || 5;
+const COL_WIDTH = 10;
 
 
 module.exports = function(robot) {
@@ -180,8 +184,10 @@ module.exports = function(robot) {
         }
     };
 
-    this.getNameColWidth = collection => {
-        return Math.max(10, collection.reduce((i1, i2) => (i1.name.length > i2.name.length ? i1 : i2)).name.length + 1);
+    var getNameColWidth = collection => {
+        const longestPlayer = collection.reduce((i1, i2) => (i1.name.length > i2.name.length ? i1 : i2));
+        const rankLength = Math.floor(Math.log10(collection.length)) + 2;
+        return Math.max(COL_WIDTH, longestPlayer.name.length + rankLength + 1);
     };
 
     // response builders
@@ -205,15 +211,25 @@ module.exports = function(robot) {
         return this.getRandomResponse(boardListResponses);
     };
 
-    this.getShowScoreboardMessage = scoreboardName => {
+    this.getShowScoreboardMessage = (scoreboardName, full = false) => {
         const scoreboardResponses = [
-            `Here's the play, see?\n${this.stringifyScoreboard(scoreboardName)}`,
-            `The gravy train's ridin' all over town on this one.\n${this.stringifyScoreboard(scoreboardName)}`,
-            `You got it, boss:\n${this.stringifyScoreboard(scoreboardName)}`,
-            `Better keep this outta sight of the bulls, know what I'm sayin'?\n${this.stringifyScoreboard(scoreboardName)}`,
+            'Here\'s the play, see?',
+            'The gravy train\'s ridin\' all over town on this one.',
+            'You got it, boss:',
+            'Better keep this outta sight of the bulls, know what I\'m sayin\'?',
         ];
-        return this.getRandomResponse(scoreboardResponses);
-    }
+        return `${this.getRandomResponse(scoreboardResponses)}\n${this.stringifyScoreboard(scoreboardName, full)}`;
+    };
+
+    this.getShowPlayerScoreMessage = (scoreboardName, playerName) => {
+        const playerResponses = [
+            'All right, Mack, but you didn\'t hear it from me:',
+            'What\'s it to you? You a private eye? Nah, just pullin\' ya leg:',
+            'Here\'s the skinny:',
+            `${playerName}, eh? Yeah, I think I knows 'em:`,
+        ];
+        return `${this.getRandomResponse(playerResponses)}\n${this.stringifyPlayerScore(scoreboardName, playerName)}`
+    };
 
     this.getAddPlayerSuccessMessage = (addedPlayers, scoreboardName) => {
         const addPlayersSuccessResponses = [
@@ -223,7 +239,7 @@ module.exports = function(robot) {
             `Why do _you_ think his name is Johnny Two-fingers?`,
         ];
         return this.getRandomResponse(addPlayersSuccessResponses);
-    }
+    };
 
     this.getNoAddedPlayersMessage = () => {
         const addPlayersFailResponses = [
@@ -252,11 +268,11 @@ module.exports = function(robot) {
         return this.getRandomResponse(removeResponses);
     };
 
-    this.getMissingPlayerMessage = (player, scoreboardName) => {
+    this.getMissingPlayerMessage = (scoreboardName, playerName) => {
         const missingResponses = [
-            `I don't know what kind of game you're playin' here, bud, but ${player} isn't marked on ${scoreboardName}.`,
-            `Who you kiddin'? ${player} isn't marked on ${scoreboardName}.`,
-            `I ain't never heard 'a no ${player}, bub. Yer wastin' my time.`,
+            `I don't know what kind of game you're playin' here, bud, but ${playerName} isn't marked on ${scoreboardName}.`,
+            `Who you kiddin'? ${playerName} isn't marked on ${scoreboardName}.`,
+            `I ain't never heard 'a no ${playerName}, bub. Yer wastin' my time.`,
         ];
         return this.getRandomResponse(missingResponses);
     };
@@ -283,7 +299,7 @@ module.exports = function(robot) {
             `You wanna try again there, boss? I can't make heads er tails a "${scoreString}."`,
         ];
         return this.getRandomResponse(invalidScoreStringResponses);
-    }
+    };
 
     // scoreboard functions
 
@@ -307,17 +323,67 @@ module.exports = function(robot) {
     * @return string
     */
     this.stringifyBoardList = boardList => {
-        const nameColumnWidth = this.getNameColWidth(boardList);
-        const colWidth = 10;
-        const tableWidth = (nameColumnWidth + 2) + ((colWidth + 3) * 2);
-        let boardListString = '```' + `.${'_'.repeat(tableWidth)}.\n| ${'Board Name'.padEnd(nameColumnWidth)} | ${'Type'.padEnd(colWidth)} | ${'Players'.padStart(colWidth)} |\n`;
+        const nameColumnWidth = getNameColWidth(boardList);
+        const tableWidth = (nameColumnWidth + 2) + ((COL_WIDTH + 3) * 2);
+        let boardListString = '```' + `.${'_'.repeat(tableWidth)}.\n| ${'Board Name'.padEnd(nameColumnWidth)} | ${'Type'.padEnd(COL_WIDTH)} | ${'Players'.padStart(COL_WIDTH)} |\n`;
         boardListString += `|${'='.repeat(tableWidth)}|\n`;
         for (const scoreboard of boardList) {
             const numPlayers = Object.keys(scoreboard.players).length.toString();
-            boardListString += `| ${scoreboard.name.padEnd(nameColumnWidth)} | ${scoreboard.type.padEnd(colWidth)} | ${numPlayers.padStart(colWidth)} |\n`;
+            boardListString += `| ${scoreboard.name.padEnd(nameColumnWidth)} | ${scoreboard.type.padEnd(COL_WIDTH)} | ${numPlayers.padStart(COL_WIDTH)} |\n`;
         }
         boardListString += `º${'-'.repeat(tableWidth)}º` + '```';
         return boardListString;
+    };
+
+    // scoreboard printers
+
+    const POINTS_COLS = [{header: 'Points', getter: player => player.points.toString()}];
+    const WINLOSS_COLS = [
+        {header: 'Wins', getter: player => player.wins.toString()},
+        {header: 'Losses', getter: player => player.losses.toString()},
+        {header: 'Win Ratio', getter: player => (player.wins / (player.wins + player.losses)).toFixed(3).replace('NaN', 'N/A')}
+    ];
+    const ZEROSUM_COLS = [
+        {header: 'Wins', getter: player => player.wins.toString()},
+        {header: 'Losses', getter: player => player.losses.toString()},
+        {header: 'Win Ratio', getter: player => (player.wins / (player.wins + player.losses)).toFixed(3).replace('NaN', 'N/A')}
+    ];
+    const ELO_COLS = [
+        {header: 'Wins', getter: player => player.wins.toString()},
+        {header: 'Losses', getter: player => player.losses.toString()},
+        {header: 'Draws', getter: player => player.draws.toString()},
+        {header: 'Elo', getter: player => player.elo.toString()},
+    ];
+
+    const SCOREBOARD_COLUMNS = {
+        points: POINTS_COLS,
+        winloss: WINLOSS_COLS,
+        zerosum: ZEROSUM_COLS,
+        elo: ELO_COLS,
+    };
+
+    var getBoardWidth = (scoreboard, playerColWidth) => {
+        return (playerColWidth + 2) + ((COL_WIDTH + 3) * SCOREBOARD_COLUMNS[scoreboard.type].length)
+    }
+
+    var getBoardTab = (scoreboard, boardWidth) => {
+        let boardTab = '```' + `.${'_'.repeat(scoreboard.name.length + 2)}.\n| ${scoreboard.name} : ${scoreboard.type}`;
+        if (scoreboard.archived) {
+            boardTab += ' (archived)';
+        }
+        boardTab += `\n+${'-'.repeat(boardWidth)}.\n`;
+        return boardTab;
+    }
+
+    var getHeaderRow = (scoreboardType, playerColWidth) => {
+        const headerRow = SCOREBOARD_COLUMNS[scoreboardType].map(col => col.header.padStart(COL_WIDTH)).join(' | ');
+        return `| ${'Player'.padEnd(playerColWidth)} | ${headerRow} |\n`;
+    };
+
+    var getPlayerRow = (scoreboardType, playerColWidth, rank, player) => {
+        const rankedName = `${rank + 1}. ${player.name}`;
+        const playerData = SCOREBOARD_COLUMNS[scoreboardType].map(col => col.getter(player).padStart(COL_WIDTH)).join(' | ')
+        return `| ${rankedName.padEnd(playerColWidth)} | ${playerData} |\n`;
     };
 
      /**
@@ -326,52 +392,74 @@ module.exports = function(robot) {
     * @param {string} scoreboardName the name of the scoreboard to turn into a string
     * @return string
     */
-    this.stringifyScoreboard = scoreboardName => {
+    this.stringifyScoreboard = (scoreboardName, full = false, namesModified = []) => {
         const scoreboard = this.getScoreboard(scoreboardName);
         const players = Object.entries(scoreboard.players).map(player => Object.assign({name: player[0]}, player[1]));
-        let playerColWidth = this.getNameColWidth(players);
-        const colWidth = 10;
-        let numCols = 1;
-        let headerRow = '';
-        if (scoreboard.type === 'points') {
-            headerRow = `${'Points'.padStart(colWidth)} |`;
-        } else if (['winloss', 'zerosum'].includes(scoreboard.type)) {
-            numCols = 3;
-            headerRow = `${'Wins'.padStart(colWidth)} | ${'Losses'.padStart(colWidth)} | ${'Win Ratio'.padStart(colWidth)} |`;
-        } else if (scoreboard.type === 'elo') {
-            numCols = 4;
-            headerRow = `${'Wins'.padStart(colWidth)} | ${'Losses'.padStart(colWidth)} | ${'Draws'.padStart(colWidth)} | ${'Elo'.padStart(colWidth)} |`;
-        }
+        let playerColWidth = getNameColWidth(players);
+        const boardWidth = getBoardWidth(scoreboard, playerColWidth);
 
-        const boardWidth = (playerColWidth + 2) + ((colWidth + 3) * numCols);
-        let boardString = '```' + `.${'_'.repeat(scoreboardName.length + 2)}.\n| ${scoreboardName} : ${scoreboard.type}`;
-        if (scoreboard.archived) {
-            boardString += ' (archived)';
-        }
-        boardString += `\n+${'-'.repeat(boardWidth)}.\n`;
-        boardString += `| ${'Player'.padEnd(playerColWidth)} | ${headerRow}\n`;
+        let boardString = getBoardTab(scoreboard, boardWidth);
+        boardString += getHeaderRow(scoreboard.type, playerColWidth);
         boardString += `|${'='.repeat(boardWidth)}|\n`;
 
         const sortedPlayers = this.sortPlayers(players, scoreboard.type);
-        for (const player of sortedPlayers) {
-            boardString += `| ${player.name.padEnd(playerColWidth)} `;
-            if (scoreboard.type == 'points') {
-                boardString += `| ${player.points.toString().padStart(colWidth)} |\n`;
-            } else if (['winloss', 'zerosum'].includes(scoreboard.type)) {
-                let wins = player.wins.toString();
-                let losses = player.losses.toString();
-                let ratio = (player.wins / (player.wins + player.losses)).toFixed(3);
-                boardString += `| ${wins.padStart(colWidth)} | ${losses.padStart(colWidth)} | ${ratio.padStart(colWidth)} |\n`;
-            } else if (scoreboard.type === 'elo') {
-                let wins = player.wins.toString();
-                let losses = player.losses.toString();
-                let draws = player.draws.toString();
-                let elo = player.elo.toString();
-                boardString += `| ${wins.padStart(colWidth)} | ${losses.padStart(colWidth)} | ${draws.padStart(colWidth)} | ${elo.padStart(colWidth)} |\n`;
+        let showPlayers = sortedPlayers;
+        if (!full) {
+            showPlayers = sortedPlayers.slice(0, SHOW_NUM);
+        }
+
+        for (const [rank, player] of showPlayers.entries()) {
+            boardString += getPlayerRow(scoreboard.type, playerColWidth, rank, player);
+        }
+
+        if (!full) {
+            let lastRank = SHOW_NUM - 1;
+            const uniqueNames = namesModified.filter((name, index) => namesModified.indexOf(name) === index);
+            const modifiedPlayers = uniqueNames.map(name => sortedPlayers.find(player => player.name == name));
+            const sortedModifiedPlayers = modifiedPlayers.sort(
+                (p1, p2) => sortedPlayers.indexOf(p1) - sortedPlayers.indexOf(p2)
+            );
+            const squishedRow = `| ...${' '.repeat(boardWidth - 4)}|\n`;
+
+            for (const player of sortedModifiedPlayers) {
+                let rank = sortedPlayers.indexOf(player);
+                if (rank < SHOW_NUM) {
+                    continue;
+                } else if (rank > lastRank + 1) {
+                    boardString += squishedRow;
+                }
+                boardString += getPlayerRow(scoreboard.type, playerColWidth, rank, player);
+                lastRank = rank;
+            }
+            if (lastRank < sortedPlayers.length - 1) {
+                boardString += squishedRow;
             }
         }
         boardString += `º${'-'.repeat(boardWidth)}º` + '```';
         return boardString;
+    };
+
+     /**
+    * Prints a single player's score all pretty-like.
+    *
+    * @param {string} scoreboardName the name of the scoreboard to turn into a string
+    * @param {string} playerName the name of the player whose score to print
+    * @return string
+    */
+    this.stringifyPlayerScore = (scoreboardName, playerName) => {
+        const scoreboard = this.getScoreboard(scoreboardName);
+        const players = Object.entries(scoreboard.players).map(player => Object.assign({name: player[0]}, player[1]));
+        const player = players.find(player => player.name == playerName);
+        const sortedPlayers = this.sortPlayers(players, scoreboard.type);
+        let playerColWidth = getNameColWidth([player]);
+        const boardWidth = getBoardWidth(scoreboard, playerColWidth);
+        const rank = sortedPlayers.indexOf(player);
+
+        let playerScoreString = getBoardTab(scoreboard, boardWidth);
+        playerScoreString += getHeaderRow(scoreboard.type, playerColWidth);
+        playerScoreString += getPlayerRow(scoreboard.type, playerColWidth, rank, player);
+        playerScoreString += `º${'-'.repeat(boardWidth)}º` + '```';
+        return playerScoreString;
     };
 
     // handlers
@@ -384,7 +472,7 @@ module.exports = function(robot) {
         }
     };
 
-    this.handleGetScoreboard = (response, scoreboardName) => {
+    this.handleGetScoreboard = (response, scoreboardName, option) => {
         if (typeof scoreboardName === 'undefined') {
             response.send(this.getScoreboardListMessage());
             return;
@@ -395,7 +483,17 @@ module.exports = function(robot) {
             return;
         }
         if (Object.keys(scoreboard.players).length > 0) {
-            response.send(this.getShowScoreboardMessage(scoreboardName));
+            if (option == 'full') {
+                response.send(this.getShowScoreboardMessage(scoreboardName, true));
+            } else if (typeof option === 'undefined') {
+                response.send(this.getShowScoreboardMessage(scoreboardName));
+            } else {
+                if (!this.isPlayerOnScoreboard(scoreboardName, option)) {
+                    response.send(this.getMissingPlayerMessage(scoreboardName, option));
+                } else {
+                    response.send(this.getShowPlayerScoreMessage(scoreboardName, option));
+                }
+            }
         } else {
             response.send(`Ain't much t'tell ya, mac. There are no players for ${scoreboardName}. You can add some with the addplayers command.`);
         }
@@ -476,7 +574,7 @@ module.exports = function(robot) {
         if (this.changePlayer(scoreboardName, oldName, newName)) {
             response.send(this.getChangedPlayerMessage(oldName, newName));
         } else {
-            response.send(this.getMissingPlayerMessage(oldName));
+            response.send(this.getMissingPlayerMessage(scoreboardName, oldName));
         }
     }
 
@@ -517,13 +615,13 @@ module.exports = function(robot) {
         const players = scorePieces.filter((_, index) => index % 2 == 1);
         for (const player of players) {
             if (!this.isPlayerOnScoreboard(scoreboardName, player)) {
-                response.send(this.getMissingPlayerMessage(player, scoreboardName));
+                response.send(this.getMissingPlayerMessage(scoreboardName, player));
                 return;
             }
         }
         const scoreData = this.bundleScoreData(scoreboard, scorePieces);
         this.markScores(scoreboardName, scoreData);
-        response.send(`OK pal, here's the latest standin's:\n\n${this.stringifyScoreboard(scoreboardName)}`);
+        response.send(`OK pal, here's the latest standin's:\n\n${this.stringifyScoreboard(scoreboardName, false, players)}`);
     };
 
     // responses
@@ -544,8 +642,8 @@ module.exports = function(robot) {
         this.handleDeleteScoreboard(response, response.match[1], this.getUsername(response));
     });
 
-    robot.respond(/scoreboards? ?(\w+)?$/i, response => {
-        this.handleGetScoreboard(response, response.match[1]);
+    robot.respond(/scoreboards? ?(\w+)? ?(\w+)?\s*$/i, response => {
+        this.handleGetScoreboard(response, response.match[1], response.match[2]);
     });
 
     robot.respond(/addplayers? (\w+) ((?:@?\w+\s*)+)\s*$/i, response => {

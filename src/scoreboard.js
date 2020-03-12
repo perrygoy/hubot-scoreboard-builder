@@ -324,6 +324,16 @@ module.exports = function(robot) {
         return players.sort((p1, p2) => p2.wins - p1.wins)
     };
 
+    this.getStreak = player => {
+        if (typeof player.streak === 'undefined') {
+            return '+0';
+        } else if (player.streak >= 0) {
+            return `+${player.streak}`;
+        } else {
+            return `${player.streak}`;
+        }
+    };
+
      /**
     * Prints the list of scoreboards all pretty-like.
     *
@@ -349,18 +359,22 @@ module.exports = function(robot) {
     const WINLOSS_COLS = [
         {header: 'Wins', getter: player => player.wins.toString()},
         {header: 'Losses', getter: player => player.losses.toString()},
-        {header: 'Win Ratio', getter: player => (player.wins / (player.wins + player.losses)).toFixed(3).replace('NaN', 'N/A')}
+        {header: 'Win Ratio', getter: player => (player.wins / (player.wins + player.losses)).toFixed(3).replace('NaN', 'N/A')},
+        {header: 'Streak', getter: player => this.getStreak(player)},
     ];
     const ZEROSUM_COLS = [
         {header: 'Wins', getter: player => player.wins.toString()},
         {header: 'Losses', getter: player => player.losses.toString()},
-        {header: 'Win Ratio', getter: player => (player.wins / (player.wins + player.losses)).toFixed(3).replace('NaN', 'N/A')}
+        {header: 'Win Ratio', getter: player => (player.wins / (player.wins + player.losses)).toFixed(3).replace('NaN', 'N/A')},
+        {header: 'Streak', getter: player => this.getStreak(player)},
     ];
     const ELO_COLS = [
         {header: 'Wins', getter: player => player.wins.toString()},
         {header: 'Losses', getter: player => player.losses.toString()},
         {header: 'Draws', getter: player => player.draws.toString()},
         {header: 'Elo', getter: player => player.elo.toString()},
+        {header: 'Win Ratio', getter: player => (player.wins / (player.wins + player.losses)).toFixed(3).replace('NaN', 'N/A')},
+        {header: 'Streak', getter: player => this.getStreak(player)},
     ];
 
     const SCOREBOARD_COLUMNS = {

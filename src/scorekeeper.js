@@ -106,6 +106,7 @@ module.exports = function(robot) {
             losses: 0,
             draws: 0,
             points: 0,
+            streak: 0,
             elo: 1500,
         };
         save(scoreboards);
@@ -146,6 +147,20 @@ module.exports = function(robot) {
         player.draws += draws;
         player.points += points;
         player.elo += elo;
+
+        if (typeof player.streak === 'undefined') {
+            player.streak = 0;
+        }
+        if (wins && losses) {
+            player.streak = 0;
+        } else if (player.streak >= 0 && wins) {
+            player.streak += wins;
+        } else if (player.streak <= 0 && losses) {
+            player.streak -= losses;
+        } else {
+            player.streak = 0;
+        }
+
         save(scoreboards);
         return Object.assign({}, scoreboards[scoreboardName]);
     };

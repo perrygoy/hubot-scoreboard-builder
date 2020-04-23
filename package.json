@@ -1,6 +1,6 @@
 {
   "name": "hubot-scoreboard-builder",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Store scores and more! No, just scores.",
   "main": "index.coffee",
   "scripts": {
@@ -23,6 +23,6 @@
   "license": "ISC",
   "dependencies": {},
   "devDependencies": {
-    "eslint": "^5.3.0"
+    "eslint": "^5.16.0"
   }
 }

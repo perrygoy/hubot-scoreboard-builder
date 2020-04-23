@@ -153,12 +153,18 @@ module.exports = function(robot) {
         }
         if (wins && losses) {
             player.streak = 0;
-        } else if (player.streak >= 0 && wins) {
-            player.streak += wins;
-        } else if (player.streak <= 0 && losses) {
-            player.streak -= losses;
-        } else {
-            player.streak = 0;
+        } else if (wins) {
+            if (player.streak >= 0) {
+                player.streak += wins;
+            } else {
+                player.streak = wins;
+            }
+        } else if (losses) {
+            if (player.streak <= 0) {
+                player.streak -= losses;
+            } else {
+                player.streak = -losses;
+            }
         }
 
         save(scoreboards);
